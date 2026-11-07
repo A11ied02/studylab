@@ -249,7 +249,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-white">Search your library</h2>
-              <p className="mt-1 text-sm text-neutral-400">Find a phrase on any page across your PDFs.</p>
+              <p className="mt-1 text-sm text-neutral-400">Find any word or sentence across NCERT textbooks.</p>
             </div>
             <button onClick={onClose} aria-label="Close search" className="rounded-lg p-2 text-neutral-500 hover:bg-white/5 hover:text-white">
               <X size={17} />
@@ -281,7 +281,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               className="flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === 'loading' ? <LoaderCircle size={14} className="animate-spin" /> : <Search size={14} />}
-              <span>Search PDFs</span>
+              <span>Search NCERT</span>
             </button>
           </form>
 
@@ -348,7 +348,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           {status === 'idle' && (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300"><Search size={19} /></div>
-              <p className="text-sm font-medium text-neutral-300">Search across {allSearchablePdfCount} PDFs</p>
+              <p className="text-sm font-medium text-neutral-300">Search across {allSearchablePdfCount} NCERT chapters</p>
               <p className="mt-1 text-xs text-neutral-600">Results include the matching page and a text preview.</p>
             </div>
           )}
@@ -397,7 +397,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] px-4 py-2.5 text-[10px] text-neutral-600 sm:px-5">
-          <span className="min-w-0 flex-1 truncate">Searchable PDF text <span className="hidden sm:inline">· Esc to close</span></span>
+          <span className="min-w-0 flex-1 truncate">Searchable NCERT text <span className="hidden sm:inline">· Esc to close</span></span>
           {status === 'done' && results.length > RESULTS_PER_PAGE && (
             <div className="flex shrink-0 items-center gap-2 text-xs text-neutral-300" aria-label="Search results pages">
               <button

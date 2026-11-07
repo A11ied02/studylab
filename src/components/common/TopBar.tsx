@@ -287,7 +287,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
                 onClick={openFullTextSearch}
                 className="flex w-full items-center justify-between border-t border-bg-border px-4 py-3 text-left text-xs font-medium text-blue-300 hover:bg-white/[0.04]"
               >
-                <span>Search text inside all PDFs</span>
+                <span>Search text across NCERT</span>
                 <ChevronRight size={14} />
               </button>
             </div>
