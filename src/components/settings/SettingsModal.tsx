@@ -24,9 +24,10 @@ import {
 } from '../../context/LibraryContext';
 import { useFlashcards } from '../../context/FlashcardsContext';
 import { StorageService } from '../../services/storage';
-import { buildPdfSearchIndex, formatIndexSize, LoadedPdfSearchIndex, loadPdfSearchIndex, PdfIndexProgress } from '../../services/pdfSearch';
+import { buildPdfSearchIndex, clearSavedPdfSearchIndex, formatIndexSize, LoadedPdfSearchIndex, loadPdfSearchIndex, PdfIndexProgress } from '../../services/pdfSearch';
 import { WorkspaceBackup } from '../../services/workspaceBackup';
 import { useCloudSync } from '../../context/CloudSyncContext';
+import { clearLibraryCache, getLibraryCacheStatus, LibraryCacheStatus, subscribeLibraryCache } from '../../services/libraryCache';
 
 type SettingsTab = 'tiles' | 'science' | 'it' | 'flashcards' | 'library' | 'storage' | 'sync' | 'about';
 
@@ -105,8 +106,37 @@ export const SettingsModal: React.FC = () => {
   const [indexStatus, setIndexStatus] = useState<'idle' | 'loading' | 'ready' | 'rebuilding' | 'error'>('idle');
   const [indexProgress, setIndexProgress] = useState<PdfIndexProgress | null>(null);
   const [indexError, setIndexError] = useState('');
+  const [libraryCacheStatus, setLibraryCacheStatus] = useState<LibraryCacheStatus>({ cachedItems: 0, totalItems: 0, cachedBytes: 0, downloading: false });
+  const [clearingLibraryCache, setClearingLibraryCache] = useState(false);
 
   const storage = StorageService.getStorageUsage();
+
+  const cachedLibraryUrls = allPdfs.map((file) => getAssetUrl(file.path));
+  const cachedIndexUrl = getAssetUrl('search/index.json');
+
+  useEffect(() => {
+    if (!isSettingsOpen || activeTab !== 'storage') return;
+    const targets = [cachedIndexUrl, ...cachedLibraryUrls];
+    const unsubscribe = subscribeLibraryCache(setLibraryCacheStatus);
+    void getLibraryCacheStatus(targets);
+    return unsubscribe;
+  // getAssetUrl is stable in behavior, but the context creates a new function per render.
+  // Depending on it here would resubscribe every time the cache status updates.
+  }, [isSettingsOpen, activeTab, allPdfs]);
+
+  const handleClearLibraryCache = async () => {
+    setClearingLibraryCache(true);
+    try {
+      await clearLibraryCache();
+      await clearSavedPdfSearchIndex();
+      setSearchIndex(null);
+      setIndexStatus('idle');
+      setIndexError('');
+      setLibraryCacheStatus({ cachedItems: 0, totalItems: cachedLibraryUrls.length + 1, cachedBytes: 0, downloading: false });
+    } finally {
+      setClearingLibraryCache(false);
+    }
+  };
 
   useEffect(() => {
     if (!isSettingsOpen || activeTab !== 'storage' || searchIndex) return;
@@ -675,7 +705,36 @@ export const SettingsModal: React.FC = () => {
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-white mb-1">Data Controls</h2>
-                <p className="text-sm text-neutral-400">Back up, restore, or clear this signed-in Studylab workspace.</p>
+                <p className="text-sm text-neutral-400">Manage this workspace and the books saved for faster browsing on this device.</p>
+              </div>
+
+              <div className="rounded-2xl bg-bg-card border border-bg-border p-6 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Cached library data</h3>
+                  <p className="mt-1 text-xs text-neutral-500">Studylab quietly downloads the book PDFs and search index in the background. Interrupted downloads resume the next time the app opens or the device reconnects.</p>
+                </div>
+                <div className="flex items-center justify-between border-y border-white/5 py-3">
+                  <span className="text-sm text-neutral-400">Library files saved</span>
+                  <span className="font-mono text-sm font-semibold text-white">{libraryCacheStatus.cachedItems} / {libraryCacheStatus.totalItems}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <span>{libraryCacheStatus.downloading ? 'Downloading in background…' : 'Available on this device'}</span>
+                  <span>{formatIndexSize(libraryCacheStatus.cachedBytes)}</span>
+                </div>
+                {libraryCacheStatus.downloading && (
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round(libraryCacheStatus.cachedItems / Math.max(libraryCacheStatus.totalItems, 1) * 100)}%` }} />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleClearLibraryCache()}
+                  disabled={clearingLibraryCache}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/15 disabled:opacity-60"
+                >
+                  {clearingLibraryCache ? <LoaderCircle size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                  {clearingLibraryCache ? 'Clearing cached data…' : 'Clear cached library data'}
+                </button>
               </div>
 
               <div className="rounded-2xl bg-bg-card border border-bg-border p-6 space-y-4">

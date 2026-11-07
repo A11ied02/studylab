@@ -6,6 +6,7 @@ import { StorageService } from '../services/storage';
 import { preloadPdfDocument } from '../services/pdfDocument';
 import { saveWorkspaceValue } from '../services/workspaceChanges';
 import { clearAppRoute, parseAppRoute, writeAppRoute } from '../services/appRoute';
+import { startLibraryCaching } from '../services/libraryCache';
 
 export interface ScienceGradients {
   bio: [string, string];
@@ -270,6 +271,11 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     return list;
   }, [subjects]);
+
+  useEffect(() => {
+    if (!manifest) return;
+    startLibraryCaching(allPdfs.map((file) => getAssetUrl(file.path)), getAssetUrl('search/index.json'));
+  }, [manifest, allPdfs]);
 
   const applyRoute = useCallback(() => {
     const route = parseAppRoute();

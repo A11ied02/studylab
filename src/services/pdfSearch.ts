@@ -111,6 +111,18 @@ async function saveIndex(json: string, sizeBytes: number): Promise<void> {
   });
 }
 
+export async function clearSavedPdfSearchIndex(): Promise<void> {
+  loadedIndex = null;
+  loadingIndex = null;
+  if (typeof indexedDB === 'undefined') return;
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(INDEX_DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
 function decodeIndex(json: string, sizeBytes: number, source: LoadedPdfSearchIndex['source']): LoadedPdfSearchIndex {
   const envelope = JSON.parse(json) as SearchIndexEnvelope;
   if (envelope.schemaVersion !== INDEX_SCHEMA_VERSION || !envelope.index) {
