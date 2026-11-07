@@ -32,7 +32,7 @@ In the repository, open **Settings → Pages** and set **Build and deployment �
 https://a11ied02.github.io/studylab/
 ```
 
-To enable Google sign-in on the deployed site, add these repository Actions variables under **Settings → Secrets and variables → Actions → Variables**, using the values from your Firebase web app configuration:
+To enable Google sign-in on the deployed site, add these repository Actions secrets under **Settings → Secrets and variables → Actions → Secrets**, using the values from your Firebase web app configuration:
 
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
@@ -40,4 +40,4 @@ To enable Google sign-in on the deployed site, add these repository Actions vari
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 
-Then, in Firebase Console, open **Authentication → Settings → Authorized domains** and add `a11ied02.github.io` (domain only; leave off `https://` and `/studylab/`). Google sign-in must also be enabled as an Authentication provider. Keep Firestore security rules enabled; the Firebase web app config is included in the public client bundle, so access control belongs in Firebase rules.
+Then, in Firebase Console, open **Authentication → Settings → Authorized domains** and add `a11ied02.github.io` (domain only; leave off `https://` and `/studylab/`). Google sign-in must also be enabled as an Authentication provider. Keep Firestore security rules enabled; GitHub Secrets keep values out of Git history and workflow logs, but Vite embeds Firebase web configuration in the public client bundle, so access control belongs in Firebase rules.
