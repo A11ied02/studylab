@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, FileText, Filter, LoaderCircle, Search, X } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { LoadedPdfSearchIndex, PdfTextMatch, loadPdfSearchIndex, searchPdfPages } from '../../services/pdfSearch';
-import { parseCommaSeparatedKeywords } from '../../services/searchText';
+import { findSearchTextRanges, parseCommaSeparatedKeywords } from '../../services/searchText';
 import { BookFolder, Subject } from '../../types/library';
 import { HighlightedText } from './HighlightedText';
 
@@ -238,18 +238,18 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-black/70 px-3 py-3 backdrop-blur-sm sm:px-6 sm:py-5"
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-black/70 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <section
         className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_30px_100px_rgba(0,0,0,.65)]"
-        style={{ maxHeight: 'calc(100dvh - 1.5rem)' }}
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
       >
-        <div className="shrink-0 border-b border-white/[0.07] p-5 sm:p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="shrink-0 border-b border-white/[0.07] p-4 sm:p-6">
+          <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4 sm:gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Search your library</h2>
-              <p className="mt-1 text-sm text-neutral-400">Find any word or sentence across NCERT textbooks.</p>
+              <h2 className="text-base font-semibold text-white sm:text-lg">Search your library</h2>
+              <p className="mt-1 text-xs text-neutral-400 sm:text-sm">Find any word or sentence across NCERT textbooks.</p>
             </div>
             <button onClick={onClose} aria-label="Close search" className="rounded-lg p-2 text-neutral-500 hover:bg-white/5 hover:text-white">
               <X size={17} />
@@ -258,7 +258,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
           <form
             onSubmit={(event) => { event.preventDefault(); onRouteChange?.(query, selectedScopeIds, minKeywordMatches); void runSearch(); }}
-            className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#191919] px-4 py-3 focus-within:border-blue-500/60"
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#191919] px-3 py-2.5 focus-within:border-blue-500/60 sm:gap-3 sm:px-4 sm:py-3"
           >
             <Search size={17} className="shrink-0 text-neutral-500" />
             <input
@@ -298,7 +298,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               </button>
 
               {isFilterOpen && (
-                <div className="absolute left-0 top-full z-20 mt-2 max-h-[55vh] w-72 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
+                <div className="absolute left-0 top-full z-20 mt-2 max-h-[55dvh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
                   <button onClick={() => { setSelectedScopeIds([]); setIsFilterOpen(false); onRouteChange?.(query, [], minKeywordMatches); if (status === 'done') void runSearch([]); }} className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs text-blue-300 hover:bg-white/[0.05]">Search all subjects and folders</button>
                   <div className="space-y-0.5">{scopeTree.map((scope) => renderScope(scope))}</div>
                   <p className="px-3 pb-1 pt-2 text-[10px] text-neutral-600">No selection searches everything. Select a subject or folders to narrow results.</p>
@@ -316,7 +316,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition ${isKeywordSettingsOpen ? 'border-blue-400/50 bg-blue-500/10 text-blue-200' : 'border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.06]'}`}
                 >K</button>
                 {isKeywordSettingsOpen && (
-                  <div className="absolute left-0 top-full z-20 mt-2 w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 shadow-xl">
+                  <div className="absolute right-0 top-full z-20 mt-2 max-h-[55dvh] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#1a1a1a] p-3 shadow-xl sm:p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <span className="text-xs font-medium text-neutral-200">Keywords that must match</span>
                       <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-semibold tabular-nums text-blue-200">{minKeywordMatches} / {keywordTerms.length}</span>
@@ -376,7 +376,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 return (
                   <button
                     key={result.id}
-                    onClick={() => { openPdf(file, result.page, query.trim(), keywordTerms.length > 1 ? minKeywordMatches : 1); onClose(); }}
+                    onClick={() => {
+                      const minimum = keywordTerms.length > 1 ? minKeywordMatches : 1;
+                      openPdf(file, result.page, query.trim(), minimum, {
+                        ranges: findSearchTextRanges(result.text, query.trim(), minimum),
+                        spotlight: true,
+                      });
+                      onClose();
+                    }}
                     className="group flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.04]"
                   >
                     <FileText size={16} className="mt-0.5 shrink-0 text-blue-300/80" />

@@ -28,6 +28,11 @@
 @media (max-width: 767px) {
   .settings-overlay {
     left: 0 !important;
+    top: max(0.5rem, env(safe-area-inset-top)) !important;
+    right: max(0.5rem, env(safe-area-inset-right)) !important;
+    bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
+    border-radius: 1rem;
+    overflow: hidden;
   }
 }
 
@@ -55,8 +60,8 @@
 }
 
 .textLayer mark.pdf-find-highlight {
-  background: rgba(255, 196, 0, 0.48);
-  color: transparent;
+  background: rgba(255, 196, 0, 0.96);
+  color: #151515 !important;
   border-radius: 2px;
   padding: 0;
 }

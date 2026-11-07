@@ -36,6 +36,8 @@ const AppContent: React.FC<{ guestMode?: boolean }> = ({ guestMode = false }) =>
     activePdfSearchQuery,
     activePdfSearchPage,
     activePdfMinKeywordMatches,
+    activePdfSearchRanges,
+    activePdfSearchSpotlight,
     closePdf,
     updatePdfRoute,
     loading: libraryLoading,
@@ -164,6 +166,8 @@ const AppContent: React.FC<{ guestMode?: boolean }> = ({ guestMode = false }) =>
               initialSearchQuery={activePdfSearchQuery}
               initialSearchPage={activePdfSearchPage}
               initialMinKeywordMatches={activePdfMinKeywordMatches}
+              initialSearchRanges={activePdfSearchRanges}
+              spotlightInitialSearch={activePdfSearchSpotlight}
               onRouteChange={handlePdfRouteChange}
               onClose={closePdf}
             />
@@ -234,8 +238,8 @@ const GoogleAuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="auth-title" className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#111318] p-7 text-white shadow-2xl sm:p-9">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="auth-title" className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[#111318] p-5 text-white shadow-2xl sm:rounded-3xl sm:p-9">
         <button type="button" onClick={onClose} disabled={busy} aria-label="Close sign-in" className="absolute right-4 top-4 rounded-lg p-2 text-neutral-500 hover:bg-white/5 hover:text-white disabled:opacity-40"><X size={17} /></button>
         <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-xl font-bold text-blue-300">S</div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-300">Studylab</p>

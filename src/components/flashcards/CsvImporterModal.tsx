@@ -71,20 +71,20 @@ export const CsvImporterModal: React.FC<Props> = ({ isOpen, onClose, folderOptio
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 bg-black/70 backdrop-blur-sm sm:p-4"
       onClick={onClose}>
-      <div className="w-full max-w-lg bg-bg-surface rounded-xl border border-bg-border shadow-modal flex flex-col max-h-[80vh]"
+      <div className="w-full max-w-lg bg-bg-surface rounded-xl border border-bg-border shadow-modal flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-bg-border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-bg-border sm:px-5 sm:py-4">
           <h3 className="text-sm font-semibold text-txt-primary">Import Flashcards (CSV)</h3>
           <button onClick={onClose} className="text-txt-muted hover:text-txt-secondary">
             <X size={15} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm sm:p-5">
           {/* File picker */}
           {!preview ? (
             <button

@@ -61,9 +61,7 @@ export function normalizeSearchTextWithMap(value: string): NormalizedSearchText 
 }
 
 /** Find normalized query matches and return their original text offsets. */
-export function findNormalizedTextRanges(text: string, query: string): SourceTextRange[] {
-  const normalizedText = normalizeSearchTextWithMap(text);
-  const normalizedQuery = normalizeSearchText(query);
+function findRangesInNormalizedText(normalizedText: NormalizedSearchText, normalizedQuery: string): SourceTextRange[] {
   if (!normalizedQuery) return [];
 
   const matches: SourceTextRange[] = [];
@@ -79,6 +77,35 @@ export function findNormalizedTextRanges(text: string, query: string): SourceTex
     searchFrom = matchStart + Math.max(1, normalizedQuery.length);
   }
   return matches;
+}
+
+/** Find normalized query matches and return their original text offsets. */
+export function findNormalizedTextRanges(text: string, query: string): SourceTextRange[] {
+  return findRangesInNormalizedText(normalizeSearchTextWithMap(text), normalizeSearchText(query));
+}
+
+/** Find and merge the ranges for a query, including comma-separated keyword thresholds. */
+export function findSearchTextRanges(text: string, query: string, minKeywordMatches = 1): SourceTextRange[] {
+  const keywords = parseCommaSeparatedKeywords(query);
+  const normalizedText = normalizeSearchTextWithMap(text);
+  let ranges: SourceTextRange[];
+
+  if (keywords.length > 1) {
+    const rangesByKeyword = keywords.map((keyword) => findRangesInNormalizedText(normalizedText, keyword));
+    const minimum = Math.min(keywords.length, Math.max(1, Math.floor(minKeywordMatches)));
+    if (rangesByKeyword.filter((keywordRanges) => keywordRanges.length > 0).length < minimum) return [];
+    ranges = rangesByKeyword.flat();
+  } else {
+    ranges = findRangesInNormalizedText(normalizedText, normalizeSearchText(query));
+  }
+
+  ranges.sort((a, b) => a.start - b.start || a.end - b.end);
+  return ranges.reduce<SourceTextRange[]>((merged, range) => {
+    const previous = merged[merged.length - 1];
+    if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+    else merged.push({ ...range });
+    return merged;
+  }, []);
 }
 
 /** Parse an explicit comma-separated list of single-word search terms. */

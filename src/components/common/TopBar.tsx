@@ -309,8 +309,8 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
       </div>
 
       {confirmSignOut && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !signOutBusy) setConfirmSignOut(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="confirm-sign-out-title" className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151515] p-5 shadow-[0_30px_100px_rgba(0,0,0,.65)]">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !signOutBusy) setConfirmSignOut(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="confirm-sign-out-title" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-2xl border border-white/10 bg-[#151515] p-4 shadow-[0_30px_100px_rgba(0,0,0,.65)] sm:p-5">
             <h2 id="confirm-sign-out-title" className="text-base font-semibold text-white">Sign out of Studylab?</h2>
             <p className="mt-2 text-sm leading-relaxed text-neutral-400">We’ll sync your latest workspace changes before signing out. If syncing fails, you’ll stay signed in.</p>
             {signOutError && <p role="alert" className="mt-3 text-xs leading-5 text-red-300">{signOutError}</p>}

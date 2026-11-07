@@ -52,6 +52,8 @@ interface LibraryContextType {
   activePdfSearchQuery: string;
   activePdfSearchPage: number;
   activePdfMinKeywordMatches: number;
+  activePdfSearchRanges: { start: number; end: number }[];
+  activePdfSearchSpotlight: boolean;
   sidebarExpanded: boolean;
   isSettingsOpen: boolean;
 
@@ -68,7 +70,13 @@ interface LibraryContextType {
   navigateToSubject: (subjectId: string) => void;
   navigateToFolder: (folderPath: string) => void;
   navigateToBooksHome: () => void;
-  openPdf: (file: BookFile, pageNum?: number, searchQuery?: string, minKeywordMatches?: number) => void;
+  openPdf: (
+    file: BookFile,
+    pageNum?: number,
+    searchQuery?: string,
+    minKeywordMatches?: number,
+    searchOptions?: { ranges?: { start: number; end: number }[]; spotlight?: boolean },
+  ) => void;
   updatePdfRoute: (pageNum: number, searchQuery: string, minKeywordMatches: number) => void;
   closePdf: () => void;
   toggleSidebar: () => void;
@@ -97,6 +105,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activePdfSearchQuery, setActivePdfSearchQuery] = useState('');
   const [activePdfSearchPage, setActivePdfSearchPage] = useState(1);
   const [activePdfMinKeywordMatches, setActivePdfMinKeywordMatches] = useState(1);
+  const [activePdfSearchRanges, setActivePdfSearchRanges] = useState<{ start: number; end: number }[]>([]);
+  const [activePdfSearchSpotlight, setActivePdfSearchSpotlight] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
@@ -273,6 +283,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setActivePdfSearchQuery('');
       setActivePdfSearchPage(1);
       setActivePdfMinKeywordMatches(1);
+      setActivePdfSearchRanges([]);
+      setActivePdfSearchSpotlight(false);
       return;
     }
 
@@ -342,13 +354,21 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     writeAppRoute({ path: '', scopeIds: [] });
   };
 
-  const openPdf = (file: BookFile, pageNum = 1, searchQuery = '', minKeywordMatches = 1) => {
+  const openPdf = (
+    file: BookFile,
+    pageNum = 1,
+    searchQuery = '',
+    minKeywordMatches = 1,
+    searchOptions: { ranges?: { start: number; end: number }[]; spotlight?: boolean } = {},
+  ) => {
     preloadPdfDocument(getAssetUrl(file.path), getAssetUrl('pdf.worker.min.mjs'));
     setActivePdf(file);
     setActivePdfPage(Math.max(1, pageNum));
     setActivePdfSearchQuery(searchQuery.trim());
     setActivePdfSearchPage(Math.max(1, pageNum));
     setActivePdfMinKeywordMatches(Math.max(1, Math.round(minKeywordMatches)));
+    setActivePdfSearchRanges(searchOptions.ranges ?? []);
+    setActivePdfSearchSpotlight(Boolean(searchOptions.spotlight && searchOptions.ranges?.length));
     writeAppRoute({ path: file.rawPath, page: Math.max(1, pageNum), query: searchQuery.trim(), minKeywordMatches, scopeIds: [] });
     StorageService.recordBookOpened({
       id: file.id,
@@ -365,6 +385,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivePdfSearchQuery('');
     setActivePdfSearchPage(1);
     setActivePdfMinKeywordMatches(1);
+    setActivePdfSearchRanges([]);
+    setActivePdfSearchSpotlight(false);
     writeAppRoute({ path: selectedFolderPath ?? selectedSubjectId ?? '', scopeIds: [] });
   };
 
@@ -399,6 +421,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activePdfSearchQuery,
         activePdfSearchPage,
         activePdfMinKeywordMatches,
+        activePdfSearchRanges,
+        activePdfSearchSpotlight,
         sidebarExpanded,
         isSettingsOpen,
         scienceGradients,

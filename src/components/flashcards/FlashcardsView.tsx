@@ -304,8 +304,8 @@ interface DialogProps {
 }
 
 const Dialog: React.FC<DialogProps> = ({ title, children, onClose }) => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-    <div role="dialog" aria-modal="true" className="w-full max-w-md rounded-2xl border border-bg-border bg-[#151515] p-5 shadow-modal sm:p-6" onClick={(event) => event.stopPropagation()}>
+  <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-4" onClick={onClose}>
+    <div role="dialog" aria-modal="true" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-bg-border bg-[#151515] p-4 shadow-modal sm:p-6" onClick={(event) => event.stopPropagation()}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-2 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={17} /></button>

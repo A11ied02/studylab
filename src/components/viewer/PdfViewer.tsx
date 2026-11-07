@@ -10,7 +10,7 @@ import {
 import { BookFile } from '../../types/library';
 import { useLibrary } from '../../context/LibraryContext';
 import { chanakyaToUnicode } from '../../services/chanakyaToUnicode';
-import { findNormalizedTextRanges, parseCommaSeparatedKeywords } from '../../services/searchText';
+import { findSearchTextRanges, parseCommaSeparatedKeywords } from '../../services/searchText';
 import { getPdfDocumentTask, releasePdfDocumentTask } from '../../services/pdfDocument';
 
 interface PageMeta { pageNum: number; width: number; height: number; }
@@ -19,25 +19,27 @@ interface FindOccurrence extends TextRange { page: number; }
 
 const EMPTY_RANGES: TextRange[] = [];
 
-function highlightPdfText(container: HTMLElement, query: string, ranges: TextRange[] = []) {
-  const spans = Array.from(container.querySelectorAll('span'));
+function highlightPdfText(container: HTMLElement, query: string, minMatches: number): number {
+  // PDF.js nests text spans inside marked-content wrapper spans; only count the actual text spans.
+  const spans = Array.from(container.querySelectorAll('span:not(.markedContent)'));
+  const pageText = spans.map((span) => span.textContent ?? '').join(' ');
+  const sortedRanges = findSearchTextRanges(pageText, query, minMatches);
   let pageOffset = 0;
+  let firstRangeIndex = 0;
   spans.forEach((span, spanIndex) => {
     const text = span.textContent ?? '';
     const spanStart = pageOffset;
     const spanEnd = spanStart + text.length;
     pageOffset = spanEnd + (spanIndex < spans.length - 1 ? 1 : 0);
 
-    const highlights = ranges.length
-      ? ranges
-          .map((range) => ({
-            start: Math.max(range.start, spanStart) - spanStart,
-            end: Math.min(range.end, spanEnd) - spanStart,
-          }))
-          .filter((range) => range.end > range.start)
-      : (() => {
-          return findNormalizedTextRanges(text, query);
-        })();
+    while (firstRangeIndex < sortedRanges.length && sortedRanges[firstRangeIndex].end <= spanStart) firstRangeIndex += 1;
+    const highlights: TextRange[] = [];
+    for (let rangeIndex = firstRangeIndex; rangeIndex < sortedRanges.length && sortedRanges[rangeIndex].start < spanEnd; rangeIndex += 1) {
+      const range = sortedRanges[rangeIndex];
+      const start = Math.max(range.start, spanStart) - spanStart;
+      const end = Math.min(range.end, spanEnd) - spanStart;
+      if (end > start) highlights.push({ start, end });
+    }
     if (!highlights.length) return;
 
     const fragment = document.createDocumentFragment();
@@ -53,6 +55,7 @@ function highlightPdfText(container: HTMLElement, query: string, ranges: TextRan
     if (cursor < text.length) fragment.append(document.createTextNode(text.slice(cursor)));
     span.replaceChildren(fragment);
   });
+  return sortedRanges.length;
 }
 
 export const PdfViewer: React.FC<{
@@ -61,6 +64,8 @@ export const PdfViewer: React.FC<{
   initialSearchQuery?: string;
   initialSearchPage?: number;
   initialMinKeywordMatches?: number;
+  initialSearchRanges?: TextRange[];
+  spotlightInitialSearch?: boolean;
   onRouteChange?: (page: number, query: string, minKeywordMatches: number) => void;
   onClose: () => void;
 }> = ({
@@ -69,6 +74,8 @@ export const PdfViewer: React.FC<{
   initialSearchQuery = '',
   initialSearchPage = initialPage,
   initialMinKeywordMatches = 1,
+  initialSearchRanges = EMPTY_RANGES,
+  spotlightInitialSearch = false,
   onRouteChange,
   onClose,
 }) => {
@@ -87,9 +94,10 @@ export const PdfViewer: React.FC<{
   const [fullscreen, setFullscreen] = useState(false);
   const [shared, setShared] = useState(false);
   const [pagesMeta, setPagesMeta] = useState<PageMeta[]>([]);
-  const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2]));
+  const [visiblePages, setVisiblePages] = useState<Set<number>>(() => new Set(initialSearchQuery.trim() ? [initialPage] : [1, 2]));
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
+  const [initialSearchDismissed, setInitialSearchDismissed] = useState(false);
   const [minKeywordMatches, setMinKeywordMatches] = useState(initialMinKeywordMatches);
   const [isKeywordSettingsOpen, setIsKeywordSettingsOpen] = useState(false);
   const [findMatches, setFindMatches] = useState<FindOccurrence[]>([]);
@@ -97,11 +105,32 @@ export const PdfViewer: React.FC<{
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [findLoading, setFindLoading] = useState(false);
   const [findError, setFindError] = useState('');
+  const [spotlightPhase, setSpotlightPhase] = useState<'hidden' | 'active' | 'fading'>('hidden');
   const findInputRef = useRef<HTMLInputElement>(null);
   const findRequestId = useRef(0);
+  const spotlightStartedRef = useRef(false);
+  const spotlightTimersRef = useRef<number[]>([]);
   const keywordTerms = useMemo(() => parseCommaSeparatedKeywords(findQuery), [findQuery]);
   const keywordSignature = keywordTerms.join('\u0000');
   const previousKeywordSignatureRef = useRef(keywordSignature);
+
+  const startSearchSpotlight = useCallback(() => {
+    if (!spotlightInitialSearch || spotlightStartedRef.current) return;
+    spotlightStartedRef.current = true;
+    setSpotlightPhase('active');
+    const fadeTimer = window.setTimeout(() => setSpotlightPhase('fading'), 2400);
+    const hideTimer = window.setTimeout(() => setSpotlightPhase('hidden'), 3200);
+    spotlightTimersRef.current = [fadeTimer, hideTimer];
+  }, [spotlightInitialSearch]);
+
+  const handleSearchHighlightReady = useCallback((pageNum: number) => {
+    if (pageNum === initialSearchPage) startSearchSpotlight();
+  }, [initialSearchPage, startSearchSpotlight]);
+
+  useEffect(() => () => {
+    spotlightTimersRef.current.forEach(window.clearTimeout);
+    spotlightTimersRef.current = [];
+  }, []);
 
   useEffect(() => {
     if (previousKeywordSignatureRef.current === keywordSignature) return;
@@ -141,18 +170,22 @@ export const PdfViewer: React.FC<{
           if (e.isIntersecting) {
             setVisiblePages((prev) => {
               const s = new Set(prev);
-              s.add(n); if (n > 1) s.add(n - 1); if (n < numPages) s.add(n + 1);
+              s.add(n);
+              if (!initialSearchQuery.trim()) {
+                if (n > 1) s.add(n - 1);
+                if (n < numPages) s.add(n + 1);
+              }
               return s;
             });
             setCurrentPage(n);
           }
         });
       },
-      { root: containerRef.current, rootMargin: '400px 0px', threshold: 0.1 }
+      { root: containerRef.current, rootMargin: initialSearchQuery.trim() ? '0px' : '400px 0px', threshold: 0.1 }
     );
     containerRef.current.querySelectorAll('.pdf-page').forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [pagesMeta, numPages]);
+  }, [pagesMeta, numPages, initialSearchQuery]);
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -198,22 +231,34 @@ export const PdfViewer: React.FC<{
   useEffect(() => {
     findRequestId.current += 1;
     setCurrentPage(initialPage);
-    setVisiblePages(new Set([initialPage, initialPage + 1]));
+    setVisiblePages(new Set(initialSearchQuery.trim() ? [initialPage] : [initialPage, initialPage + 1]));
     setFindQuery(initialSearchQuery);
+    setInitialSearchDismissed(false);
     setMinKeywordMatches(initialMinKeywordMatches);
     setIsKeywordSettingsOpen(false);
     setFindOpen(Boolean(initialSearchQuery.trim()));
     setFindMatches([]);
     setFindPageRanges(new Map());
     setFindError('');
-  }, [file.id, initialPage, initialSearchQuery, initialMinKeywordMatches]);
+    setSpotlightPhase('hidden');
+    spotlightStartedRef.current = false;
+    spotlightTimersRef.current.forEach(window.clearTimeout);
+    spotlightTimersRef.current = [];
+  }, [file.id, initialPage, initialSearchQuery, initialMinKeywordMatches, initialSearchRanges, spotlightInitialSearch]);
 
   useEffect(() => {
     if (!pagesMeta.length || !containerRef.current) return;
     const target = Math.max(1, Math.min(initialPage, numPages));
-    setVisiblePages((previous) => new Set([...previous, target, target - 1, target + 1]));
+    setVisiblePages((previous) => {
+      const next = new Set([...previous, target]);
+      if (!initialSearchQuery.trim()) {
+        if (target > 1) next.add(target - 1);
+        if (target < numPages) next.add(target + 1);
+      }
+      return next;
+    });
     window.setTimeout(() => scrollToPage(target), 80);
-  }, [pagesMeta, initialPage, numPages]);
+  }, [pagesMeta, initialPage, initialSearchQuery, numPages]);
 
   const jumpToFindMatch = (index: number) => {
     if (!findMatches.length) return;
@@ -236,53 +281,77 @@ export const PdfViewer: React.FC<{
       return;
     }
     const requestId = ++findRequestId.current;
+    setInitialSearchDismissed(true);
     setFindLoading(true);
     setFindError('');
     setFindMatches([]);
     setFindPageRanges(new Map());
     try {
-      const matches: FindOccurrence[] = [];
       const pageRanges = new Map<number, TextRange[]>();
-      const keywords = parseCommaSeparatedKeywords(term);
-      for (const pageNumber of pageNumbers) {
+      const uniquePages = [...new Set(pageNumbers)];
+      const priorityPage = uniquePages.includes(currentPage) ? currentPage : uniquePages[0];
+      const remainingPages = uniquePages.filter((pageNumber) => pageNumber !== priorityPage);
+      let firstMatchPage: number | null = null;
+
+      const scanPage = async (pageNumber: number) => {
         if (requestId !== findRequestId.current) return;
         const page = await pdfDoc.getPage(pageNumber);
+        if (requestId !== findRequestId.current) return;
         const content = await page.getTextContent();
         const textItems = content.items.filter((item): item is typeof item & { str: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0);
         const pageText = textItems.map((item) => item.str).join(' ');
-        const keywordRanges = keywords.map((keyword) => findNormalizedTextRanges(pageText, keyword));
-        if (keywords.length > 1 && keywordRanges.filter((ranges) => ranges.length > 0).length < Math.min(keywords.length, requiredKeywordMatches)) continue;
-        const foundRanges = (keywords.length ? keywordRanges.flat() : findNormalizedTextRanges(pageText, term))
-          .sort((a, b) => a.start - b.start || a.end - b.end);
-        const ranges = foundRanges.reduce<TextRange[]>((merged, range) => {
-          const previous = merged[merged.length - 1];
-          if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
-          else merged.push({ ...range });
-          return merged;
-        }, []);
-        if (ranges.length) {
-          pageRanges.set(pageNumber, ranges);
-          ranges.forEach((range) => matches.push({ page: pageNumber, ...range }));
+        const ranges = findSearchTextRanges(pageText, term, requiredKeywordMatches);
+        if (requestId === findRequestId.current && ranges.length) pageRanges.set(pageNumber, ranges);
+      };
+
+      const publishMatches = () => {
+        if (requestId !== findRequestId.current) return;
+        const orderedPages = [...pageRanges.keys()].sort((a, b) => a - b);
+        const matches = orderedPages.flatMap((page) => (pageRanges.get(page) ?? []).map((range) => ({ page, ...range })));
+        setFindPageRanges(new Map(pageRanges));
+        setFindMatches(matches);
+        if (firstMatchPage !== null) {
+          const activeIndex = matches.findIndex((match) => match.page === firstMatchPage);
+          if (activeIndex >= 0) setActiveFindIndex(activeIndex);
         }
+        if (firstMatchPage === null && orderedPages.length) {
+          firstMatchPage = orderedPages.includes(priorityPage) ? priorityPage : orderedPages[0];
+          const matchIndex = matches.findIndex((match) => match.page === firstMatchPage);
+          setActiveFindIndex(Math.max(0, matchIndex));
+          setVisiblePages((previous) => new Set([...previous, firstMatchPage!]));
+          window.setTimeout(() => scrollToPage(firstMatchPage!), 0);
+        }
+      };
+
+      if (priorityPage) {
+        await scanPage(priorityPage);
+        publishMatches();
       }
+
+      let nextPageIndex = 0;
+      let completed = 0;
+      const concurrency = Math.min(4, Math.max(1, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
+      const workers = Array.from({ length: Math.min(concurrency, remainingPages.length) }, async () => {
+        while (requestId === findRequestId.current && nextPageIndex < remainingPages.length) {
+          const pageNumber = remainingPages[nextPageIndex++];
+          await scanPage(pageNumber);
+          completed += 1;
+          if (pageRanges.has(pageNumber) || completed % 4 === 0) publishMatches();
+        }
+      });
+      await Promise.all(workers);
       if (requestId !== findRequestId.current) return;
-      setFindPageRanges(pageRanges);
-      setFindMatches(matches);
-      if (matches.length) {
-        const preferredIndex = matches.findIndex((match) => match.page === initialSearchPage);
-        const firstMatchIndex = preferredIndex >= 0 ? preferredIndex : 0;
-        const firstMatch = matches[firstMatchIndex];
-        setActiveFindIndex(firstMatchIndex);
-        setVisiblePages((previous) => new Set([...previous, firstMatch.page, firstMatch.page - 1, firstMatch.page + 1]));
-        window.setTimeout(() => scrollToPage(firstMatch.page), 0);
-      }
-      else setFindError('No matches found in this PDF.');
+      publishMatches();
+      if (!pageRanges.size) setFindError('No matches found in this PDF.');
+      else setFindError('');
     } catch (error) {
-      setFindError(error instanceof Error ? error.message : 'Could not search this PDF.');
+      if (requestId === findRequestId.current) {
+        setFindError(error instanceof Error ? error.message : 'Could not search this PDF.');
+      }
     } finally {
       if (requestId === findRequestId.current) setFindLoading(false);
     }
-  }, [pdfDoc, initialSearchPage, isHindiPdf]);
+  }, [pdfDoc, currentPage, isHindiPdf]);
 
   const runDocumentFind = (event: React.FormEvent) => {
     event.preventDefault();
@@ -290,7 +359,25 @@ export const PdfViewer: React.FC<{
       setFindError('Feature not available for this language.');
       return;
     }
+    setInitialSearchDismissed(true);
     if (findQuery.trim()) void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1), minKeywordMatches);
+  };
+
+  const clearDocumentFind = (closeSearch = false) => {
+    findRequestId.current += 1;
+    setFindQuery('');
+    setFindMatches([]);
+    setFindPageRanges(new Map());
+    setFindLoading(false);
+    setFindError('');
+    setIsKeywordSettingsOpen(false);
+    setInitialSearchDismissed(true);
+    setSpotlightPhase('hidden');
+    spotlightStartedRef.current = true;
+    spotlightTimersRef.current.forEach(window.clearTimeout);
+    spotlightTimersRef.current = [];
+    if (closeSearch) setFindOpen(false);
+    onRouteChange?.(currentPage, '', 1);
   };
 
   useEffect(() => {
@@ -305,9 +392,20 @@ export const PdfViewer: React.FC<{
     if (!pdfDoc || !initialSearchQuery.trim()) return;
     setFindOpen(true);
     setFindQuery(initialSearchQuery);
+    if (initialSearchRanges.length) {
+      const page = Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages));
+      const matches = initialSearchRanges.map((range) => ({ page, ...range }));
+      setFindPageRanges(new Map([[page, initialSearchRanges]]));
+      setFindMatches(matches);
+      setActiveFindIndex(0);
+      setVisiblePages(new Set([page]));
+      window.setTimeout(() => scrollToPage(page), 0);
+      window.setTimeout(() => findInputRef.current?.focus(), 0);
+      return;
+    }
     void searchPages(initialSearchQuery, [Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages))], initialMinKeywordMatches);
     window.setTimeout(() => findInputRef.current?.focus(), 0);
-  }, [pdfDoc, file.id, initialSearchQuery, initialSearchPage, initialMinKeywordMatches, searchPages, isHindiPdf]);
+  }, [pdfDoc, file.id, initialSearchQuery, initialSearchPage, initialMinKeywordMatches, initialSearchRanges, searchPages, isHindiPdf]);
 
   const handlePdfCopy = (event: React.ClipboardEvent<HTMLDivElement>) => {
     if (file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLocaleLowerCase() !== 'hindi') return;
@@ -458,6 +556,7 @@ export const PdfViewer: React.FC<{
               const nextQuery = event.target.value;
               findRequestId.current += 1;
               setFindQuery(nextQuery);
+              if (nextQuery.trim() !== initialSearchQuery.trim()) setInitialSearchDismissed(true);
               setFindMatches([]);
               setFindPageRanges(new Map());
               setFindError('');
@@ -482,7 +581,7 @@ export const PdfViewer: React.FC<{
                 className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] font-bold ${isKeywordSettingsOpen ? 'border-blue-400/40 bg-blue-500/15 text-blue-200' : 'border-white/10 text-neutral-300 hover:bg-white/5'}`}
               >K</button>
               {isKeywordSettingsOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-white/10 bg-[#1a1a1a] p-4 shadow-xl">
+                <div className="absolute right-0 top-full z-50 mt-2 max-h-[55dvh] w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#1a1a1a] p-3 shadow-xl sm:p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <span className="text-xs font-medium text-neutral-200">Keywords that must match</span>
                     <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-semibold tabular-nums text-blue-200">{Math.min(minKeywordMatches, keywordTerms.length)} / {keywordTerms.length}</span>
@@ -495,6 +594,7 @@ export const PdfViewer: React.FC<{
                     onChange={(event) => {
                       const nextMinimum = Number(event.target.value);
                       setMinKeywordMatches(nextMinimum);
+                      setInitialSearchDismissed(true);
                       onRouteChange?.(currentPage, findQuery, nextMinimum);
                       void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1), nextMinimum);
                     }}
@@ -508,7 +608,7 @@ export const PdfViewer: React.FC<{
           )}
           <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={!findMatches.length} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
           <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={!findMatches.length} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
-          <button type="button" onClick={() => setFindOpen(false)} aria-label="Close find" className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={14} /></button>
+          <button type="button" onClick={() => clearDocumentFind(true)} aria-label="Close find" className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={14} /></button>
           {findError && <span className="absolute left-3 top-full mt-2 rounded-md bg-[#171717] px-2 py-1 text-[10px] text-neutral-400">{findError}</span>}
         </form>
       )}
@@ -547,8 +647,8 @@ export const PdfViewer: React.FC<{
           </div>
         )}
         {pdfDoc && pagesMeta.map((meta) => {
-          const isFindMatch = findMatches.some((match) => match.page === meta.pageNum);
-          const isInitialSearchMatch = Boolean(initialSearchQuery.trim()) && meta.pageNum === initialSearchPage;
+          const isFindMatch = findPageRanges.has(meta.pageNum);
+          const isInitialSearchMatch = !initialSearchDismissed && Boolean(initialSearchQuery.trim()) && meta.pageNum === initialSearchPage;
           return (
             <PdfPage
               key={meta.pageNum}
@@ -560,7 +660,11 @@ export const PdfViewer: React.FC<{
               isVisible={visiblePages.has(meta.pageNum)}
               isSearchMatch={isFindMatch || isInitialSearchMatch}
               searchTerm={isFindMatch ? findQuery : isInitialSearchMatch ? initialSearchQuery : ''}
-              matchRanges={findPageRanges.get(meta.pageNum) ?? EMPTY_RANGES}
+              minKeywordMatches={minKeywordMatches}
+              isHindiPdf={isHindiPdf}
+              spotlightActive={spotlightPhase !== 'hidden'}
+              spotlightFading={spotlightPhase === 'fading'}
+              onSearchHighlightReady={spotlightInitialSearch ? handleSearchHighlightReady : undefined}
             />
           );
         })}
@@ -579,15 +683,23 @@ const PdfPage: React.FC<{
   isVisible: boolean;
   isSearchMatch: boolean;
   searchTerm: string;
-  matchRanges: TextRange[];
-}> = ({ pdfDoc, pageNum, scale, width, height, isVisible, isSearchMatch, searchTerm, matchRanges }) => {
+  minKeywordMatches: number;
+  isHindiPdf: boolean;
+  spotlightActive: boolean;
+  spotlightFading: boolean;
+  onSearchHighlightReady?: (pageNum: number) => void;
+}> = ({ pdfDoc, pageNum, scale, width, height, isVisible, isSearchMatch, searchTerm, minKeywordMatches, isHindiPdf, spotlightActive, spotlightFading, onSearchHighlightReady }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const taskRef = useRef<pdfjsLib.RenderTask | null>(null);
+  const textLayerReadyRef = useRef(false);
+  const [textLayerVersion, setTextLayerVersion] = useState(0);
 
   useEffect(() => {
     if (!isVisible) return;
     let cancelled = false;
+    textLayerReadyRef.current = false;
+    if (textRef.current) textRef.current.innerHTML = '';
 
     async function render() {
       try {
@@ -609,37 +721,42 @@ const PdfPage: React.FC<{
           viewport: vp,
         };
         taskRef.current = page.render(renderCtx);
-        await taskRef.current.promise;
-        if (cancelled) return;
-
+        const textContentPromise = page.getTextContent();
+        const canvasRenderPromise = taskRef.current.promise;
+        let textLayerPromise = Promise.resolve();
         if (textRef.current) {
-          textRef.current.innerHTML = '';
-          textRef.current.style.width = `${Math.floor(vp.width)}px`;
-          textRef.current.style.height = `${Math.floor(vp.height)}px`;
-          textRef.current.style.setProperty('--scale-factor', `${scale}`);
-          const tc = await page.getTextContent();
-          if (cancelled) return;
-          const tl = new pdfjsLib.TextLayer({ textContentSource: tc, container: textRef.current, viewport: vp });
-          await tl.render();
-          if (typeof page.commonObjs?.get === 'function') {
-            const spans = Array.from(textRef.current.querySelectorAll('span'));
-            let spanIndex = 0;
-            for (const item of tc.items) {
-              if (!('str' in item) || !item.str) continue;
-              const span = spans[spanIndex++];
-              if (!span) continue;
-              try {
-                const font = page.commonObjs.get(item.fontName) as { name?: string };
-                if (font.name && /(?:walkman[- ]?chanakya|chanakya)/i.test(font.name)) {
-                  span.dataset.legacyHindiFont = 'chanakya';
+          const textContainer = textRef.current;
+          textContainer.style.width = `${Math.floor(vp.width)}px`;
+          textContainer.style.height = `${Math.floor(vp.height)}px`;
+          textContainer.style.setProperty('--scale-factor', `${scale}`);
+          textLayerPromise = (async () => {
+            const tc = await textContentPromise;
+            if (cancelled) return;
+            const tl = new pdfjsLib.TextLayer({ textContentSource: tc, container: textContainer, viewport: vp });
+            await tl.render();
+            if (cancelled) return;
+            if (isHindiPdf && typeof page.commonObjs?.get === 'function') {
+              const spans = Array.from(textContainer.querySelectorAll('span'));
+              let spanIndex = 0;
+              for (const item of tc.items) {
+                if (!('str' in item) || !item.str) continue;
+                const span = spans[spanIndex++];
+                if (!span) continue;
+                try {
+                  const font = page.commonObjs.get(item.fontName) as { name?: string };
+                  if (font.name && /(?:walkman[- ]?chanakya|chanakya)/i.test(font.name)) {
+                    span.dataset.legacyHindiFont = 'chanakya';
+                  }
+                } catch {
+                  // Fonts can be unresolved for hidden or malformed text runs.
                 }
-              } catch {
-                // Fonts can be unresolved for hidden or malformed text runs.
               }
             }
-          }
-          if (isSearchMatch && searchTerm) highlightPdfText(textRef.current, searchTerm, matchRanges);
+            textLayerReadyRef.current = true;
+            setTextLayerVersion((version) => version + 1);
+          })();
         }
+        await Promise.all([canvasRenderPromise, textLayerPromise]);
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') console.warn(err);
       }
@@ -649,7 +766,22 @@ const PdfPage: React.FC<{
       cancelled = true;
       taskRef.current?.cancel();
     };
-  }, [pdfDoc, pageNum, scale, isVisible, isSearchMatch, searchTerm, matchRanges]);
+  }, [pdfDoc, pageNum, scale, isVisible, isHindiPdf]);
+
+  useEffect(() => {
+    const container = textRef.current;
+    if (!container || !textLayerReadyRef.current) return;
+
+    container.querySelectorAll('mark.pdf-find-highlight').forEach((mark) => {
+      mark.replaceWith(document.createTextNode(mark.textContent ?? ''));
+    });
+    container.querySelectorAll('span').forEach((span) => span.normalize());
+
+    if (isSearchMatch && searchTerm) {
+      const highlightCount = highlightPdfText(container, searchTerm, minKeywordMatches);
+      if (highlightCount) onSearchHighlightReady?.(pageNum);
+    }
+  }, [textLayerVersion, isSearchMatch, searchTerm, minKeywordMatches, pageNum, onSearchHighlightReady]);
 
   const displayW = Math.round(width * scale);
   const displayH = Math.round(height * scale);
@@ -661,6 +793,12 @@ const PdfPage: React.FC<{
       style={{ width: displayW, minHeight: displayH }}
     >
       <canvas ref={canvasRef} className="block w-full h-full" />
+      {spotlightActive && (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 z-[1] bg-black/70 transition-opacity duration-700 ${spotlightFading ? 'opacity-0' : 'opacity-100'}`}
+        />
+      )}
       <div ref={textRef} className="textLayer absolute inset-0 select-text" />
     </div>
   );
