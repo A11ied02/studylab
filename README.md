@@ -21,3 +21,23 @@ npm run build
 ```
 
 PDF files under `public/books` use Git LFS through `.gitattributes`.
+
+## Deploy to GitHub Pages
+
+The `.github/workflows/pages.yml` workflow builds and deploys the site when you push to `codex/firebase-firestore-sync` or `main`, or start it manually from the Actions tab. It checks out Git LFS files before building the PDFs and search index.
+
+In the repository, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The site URL is:
+
+```text
+https://a11ied02.github.io/studylab/
+```
+
+To enable Google sign-in on the deployed site, add these repository Actions variables under **Settings → Secrets and variables → Actions → Variables**, using the values from your Firebase web app configuration:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Then, in Firebase Console, open **Authentication → Settings → Authorized domains** and add `a11ied02.github.io` (domain only; leave off `https://` and `/studylab/`). Google sign-in must also be enabled as an Authentication provider. Keep Firestore security rules enabled; the Firebase web app config is included in the public client bundle, so access control belongs in Firebase rules.
