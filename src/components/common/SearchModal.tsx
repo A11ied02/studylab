@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, FileText, Filter, LoaderCircle, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, FileText, Filter, LoaderCircle, Search, X } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { LoadedPdfSearchIndex, PdfTextMatch, loadPdfSearchIndex, searchPdfPages } from '../../services/pdfSearch';
 import { BookFolder, Subject } from '../../types/library';
@@ -12,6 +12,7 @@ interface SearchModalProps {
 }
 
 type SearchStatus = 'idle' | 'loading' | 'done' | 'error';
+const RESULTS_PER_PAGE = 10;
 
 interface SearchScope {
   id: string;
@@ -73,6 +74,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   const [selectedScopeIds, setSelectedScopeIds] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [results, setResults] = useState<PdfTextMatch[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +87,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
     setSelectedScopeIds([]);
     setIsFilterOpen(false);
     setResults([]);
+    setCurrentPage(1);
     setStatus('idle');
     setError('');
     window.setTimeout(() => inputRef.current?.focus(), 50);
@@ -122,10 +125,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
       ? scopeLabels.get(selectedScopeIds[0]) ?? '1 folder'
       : `${selectedScopeIds.length} selected`;
 
+  const pageCount = Math.max(1, Math.ceil(results.length / RESULTS_PER_PAGE));
+  const pageStart = (currentPage - 1) * RESULTS_PER_PAGE;
+  const visibleResults = results.slice(pageStart, pageStart + RESULTS_PER_PAGE);
+
   const runSearch = async (scope = selectedScopeIds) => {
     const term = query.trim();
     if (!term) return;
     const requestId = ++requestRef.current;
+    setCurrentPage(1);
     setStatus('loading');
     setResults([]);
     setError('');
@@ -194,11 +202,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-14 backdrop-blur-sm sm:py-20"
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-black/70 px-3 py-3 backdrop-blur-sm sm:px-6 sm:py-5"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <section className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_30px_100px_rgba(0,0,0,.65)]">
-        <div className="border-b border-white/[0.07] p-5 sm:p-6">
+      <section
+        className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-[0_30px_100px_rgba(0,0,0,.65)]"
+        style={{ maxHeight: 'calc(100dvh - 1.5rem)' }}
+      >
+        <div className="shrink-0 border-b border-white/[0.07] p-5 sm:p-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-white">Search your library</h2>
@@ -217,11 +228,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
             <input
               ref={inputRef}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }}
               placeholder="Search text, a topic, or an exact phrase"
               className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-neutral-600"
             />
-            {query && <button type="button" onClick={() => { setQuery(''); setResults([]); setStatus('idle'); }} aria-label="Clear query" className="text-neutral-500 hover:text-white"><X size={15} /></button>}
+            {query && <button type="button" onClick={() => { setQuery(''); setResults([]); setCurrentPage(1); setStatus('idle'); }} aria-label="Clear query" className="text-neutral-500 hover:text-white"><X size={15} /></button>}
             <button
               type="submit"
               disabled={!query.trim() || status === 'loading'}
@@ -253,7 +264,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
           </div>
         </div>
 
-        <div className="max-h-[52vh] min-h-48 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {status === 'idle' && (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300"><Search size={19} /></div>
@@ -276,8 +287,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
           )}
           {status === 'done' && results.length > 0 && (
             <div className="divide-y divide-white/[0.06]">
-              <div className="px-5 py-3 text-xs text-neutral-500">Top {results.length} matching pages</div>
-              {results.map((result) => {
+              <div className="sticky top-0 z-10 bg-[#111]/95 px-5 py-3 text-xs text-neutral-500 backdrop-blur">
+                Showing {pageStart + 1}–{Math.min(pageStart + RESULTS_PER_PAGE, results.length)} of {results.length} matching pages
+              </div>
+              {visibleResults.map((result) => {
                 const file = allPdfs.find((pdf) => pdf.id === result.fileId);
                 if (!file) return null;
                 return (
@@ -303,9 +316,32 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-white/[0.07] px-5 py-2.5 text-[10px] text-neutral-600">
-          <span>Searches searchable text extracted from each PDF page.</span>
-          <span>Esc to close</span>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] px-4 py-2.5 text-[10px] text-neutral-600 sm:px-5">
+          <span className="min-w-0 flex-1 truncate">Searchable PDF text <span className="hidden sm:inline">· Esc to close</span></span>
+          {status === 'done' && results.length > RESULTS_PER_PAGE && (
+            <div className="flex shrink-0 items-center gap-2 text-xs text-neutral-300" aria-label="Search results pages">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                aria-label="Previous results page"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <span className="whitespace-nowrap">Page {currentPage} of {pageCount}</span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                disabled={currentPage === pageCount}
+                aria-label="Next results page"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
+          {!(status === 'done' && results.length > RESULTS_PER_PAGE) && <span className="shrink-0">Esc to close</span>}
         </div>
       </section>
     </div>

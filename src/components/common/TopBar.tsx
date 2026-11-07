@@ -66,9 +66,51 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
     setShowSuggestions(false);
   };
 
+  const mobileSearchActions = (
+    <div className="flex shrink-0 items-center gap-2 md:hidden">
+      <button
+        type="button"
+        onClick={() => setIsSettingsOpen(true)}
+        aria-label="Open settings"
+        title="Settings"
+        className="flex h-11 w-11 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-white/20 hover:text-white"
+      >
+        <Settings size={18} strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenGlobalSearch('')}
+        aria-label="Open advanced search"
+        title="Advanced search"
+        className="flex h-11 w-11 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-blue-400/50 hover:text-white"
+      >
+        <span className="text-lg font-bold leading-none">A</span>
+      </button>
+    </div>
+  );
+
   return (
     <>
-      <div className="flex items-center gap-5 px-4 pt-3 pb-0 sm:gap-6 sm:px-8 sm:pt-5 border-b border-bg-border select-none">
+      <div className="flex items-center gap-4 px-4 pt-3 pb-3 sm:gap-6 sm:px-8 sm:pt-5 sm:pb-5 border-b border-bg-border select-none">
+        <div className="min-w-0 flex flex-1 items-center gap-5 overflow-x-auto sm:gap-6">
+          {([
+            { id: 'books', label: 'Books' },
+            { id: 'flashcards', label: 'Flashcards' },
+            { id: 'pyqs', label: 'PYQs' },
+          ] as const).map(({ id: tab, label }) => {
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`shrink-0 pb-2.5 text-sm font-medium transition-colors relative ${active ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'}`}
+              >
+                {label}
+                {active && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-[#4285f4] shadow-[0_0_10px_rgba(66,133,244,0.9)]" />}
+              </button>
+            );
+          })}
+        </div>
         <div className="relative shrink-0" ref={accountRef}>
           <button
             type="button"
@@ -82,7 +124,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
               : <span className="text-sm font-semibold text-blue-200">{user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}</span>}
           </button>
           {accountOpen && (
-            <div className="absolute left-0 top-full z-50 mt-3 w-72 rounded-2xl border border-bg-border bg-[#151515] p-4 shadow-modal">
+            <div className="absolute right-0 top-full z-50 mt-3 w-72 rounded-2xl border border-bg-border bg-[#151515] p-4 shadow-modal">
               <div className="flex items-center gap-3 border-b border-white/10 pb-3">
                 <div className="h-10 w-10 overflow-hidden rounded-full bg-bg-surface">
                   {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : null}
@@ -112,47 +154,20 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
             </div>
           )}
         </div>
-        <div className="min-w-0 flex items-center gap-5 overflow-x-auto sm:gap-6">
-        {([
-          { id: 'books', label: 'Books' },
-          { id: 'flashcards', label: 'Flashcards' },
-          { id: 'pyqs', label: 'PYQs' },
-        ] as const).map(({ id: tab, label }) => {
-          const active = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`shrink-0 pb-2.5 text-sm font-medium transition-colors relative ${active ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'}`}
-            >
-              {label}
-              {active && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4285f4] rounded-t-full shadow-[0_0_10px_rgba(66,133,244,0.9)]" />}
-            </button>
-          );
-        })}
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 md:flex-nowrap md:gap-8 md:px-8 md:pt-6 md:pb-5">
-        <div className="flex w-full min-w-0 items-center justify-between select-none md:w-auto">
+        <div className="order-1 flex w-full min-w-0 items-center justify-between select-none md:order-none md:w-auto">
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold text-white tracking-tight sm:text-2xl">{title}</h1>
             {subtitle && <p className="text-sm text-neutral-400 mt-0.5">{subtitle}</p>}
           </div>
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            aria-label="Open settings"
-            title="Settings"
-            className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-white/20 hover:text-white md:hidden"
-          >
-            <Settings size={18} strokeWidth={1.8} />
-          </button>
         </div>
 
         {activeTab !== 'pyqs' && (
-        <div ref={searchRef} className="relative order-2 w-full min-w-0 md:order-none md:ml-auto md:w-full md:max-w-sm md:shrink-0">
-          <div className={`flex items-center gap-3 px-4 h-11 rounded-xl bg-bg-surface border transition-colors ${showSuggestions ? 'border-[#4285f4]/60' : 'border-bg-border hover:border-white/20'}`}>
+        <div className="relative order-2 flex w-full min-w-0 items-start gap-2 md:order-none md:ml-auto md:w-full md:max-w-sm md:shrink-0">
+          <div ref={searchRef} className="relative min-w-0 flex-1">
+          <div className={`flex h-11 items-center gap-3 rounded-xl border bg-bg-surface px-4 transition-colors ${showSuggestions ? 'border-[#4285f4]/60' : 'border-bg-border hover:border-white/20'}`}>
             <Search size={16} strokeWidth={1.8} className="text-neutral-400 shrink-0" />
             <input
               value={query}
@@ -216,17 +231,21 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
               </button>
             </div>
           )}
+          </div>
+          {mobileSearchActions}
         </div>
         )}
 
+        {activeTab === 'pyqs' && <div className="order-2 ml-auto md:hidden">{mobileSearchActions}</div>}
+
         <button
           type="button"
-          onClick={() => setIsSettingsOpen(true)}
-          aria-label="Open settings"
-          title="Settings"
-          className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-white/20 hover:text-white md:flex"
+          onClick={() => onOpenGlobalSearch('')}
+          aria-label="Open advanced search"
+          title="Advanced search"
+          className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-blue-400/50 hover:text-white md:flex"
         >
-          <Settings size={18} strokeWidth={1.8} />
+          <span className="text-lg font-bold leading-none">A</span>
         </button>
       </div>
     </>

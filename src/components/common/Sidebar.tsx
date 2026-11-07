@@ -8,6 +8,7 @@ import {
   Cpu,
   PanelLeftClose,
   PanelLeft,
+  Settings,
 } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 
@@ -27,6 +28,8 @@ export const Sidebar: React.FC = () => {
     activeTab,
     setActiveTab,
     sidebarExpanded,
+    isSettingsOpen,
+    setIsSettingsOpen,
     toggleSidebar,
     navigateToSubject,
     navigateToBooksHome,
@@ -48,8 +51,9 @@ export const Sidebar: React.FC = () => {
         sidebarExpanded ? 'justify-between px-1' : 'flex-col gap-2.5 items-center'
       }`}>
         {/* Flash Icon App Logo */}
-        <div
-          onClick={() => { navigateToBooksHome(); }}
+        <button
+          type="button"
+          onClick={() => { setIsSettingsOpen(false); navigateToBooksHome(); }}
           title="Studylab"
           className="flex items-center gap-2.5 cursor-pointer select-none"
         >
@@ -76,7 +80,7 @@ export const Sidebar: React.FC = () => {
               Studylab
             </span>
           )}
-        </div>
+        </button>
 
         {/* 
           Expand/Collapse Button:
@@ -84,7 +88,7 @@ export const Sidebar: React.FC = () => {
           - When COLLAPSED: placed directly below the logo
         */}
         <button
-          onClick={toggleSidebar}
+          onClick={() => { setIsSettingsOpen(false); toggleSidebar(); }}
           title={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           className={`rounded-lg flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors ${
             sidebarExpanded ? 'w-8 h-8' : 'w-10 h-10'
@@ -115,6 +119,7 @@ export const Sidebar: React.FC = () => {
             <button
               key={subject.id}
               onClick={() => {
+                setIsSettingsOpen(false);
                 setActiveTab('books');
                 navigateToSubject(subject.id);
               }}
@@ -147,6 +152,24 @@ export const Sidebar: React.FC = () => {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      <button
+        type="button"
+        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
+        title={isSettingsOpen ? 'Close settings' : 'Settings'}
+        className={`relative flex h-10 items-center rounded-xl border transition-colors group ${
+          sidebarExpanded ? 'w-full justify-start gap-3 px-3' : 'mx-auto w-10 justify-center'
+        } ${isSettingsOpen ? 'border-[#4285f4]/50 bg-[#1a73e8]/20 text-blue-200' : 'border-transparent text-white/80 hover:bg-white/10 hover:text-white'}`}
+      >
+        <Settings size={19} strokeWidth={1.8} className="shrink-0" />
+        {sidebarExpanded && <span className="text-sm font-medium">Settings</span>}
+        {!sidebarExpanded && (
+          <span className="pointer-events-none absolute left-full ml-3 rounded-md border border-bg-border bg-bg-surface px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-modal transition-opacity group-hover:opacity-100">
+            Settings
+          </span>
+        )}
+      </button>
 
     </aside>
   );

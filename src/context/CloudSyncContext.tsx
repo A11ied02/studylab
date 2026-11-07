@@ -66,11 +66,18 @@ export const CloudSyncProvider: React.FC<{
         return;
       }
 
-      if (localPayload !== lastPayload.current || lastRevision.current === null) {
-        const revision = await FirebaseWorkspace.save(user.uid, localPayload);
-        lastPayload.current = localPayload;
-        lastRevision.current = revision;
+      const hasLocalChanges = localPayload !== lastPayload.current;
+      const needsInitialWorkspace = lastRevision.current === null;
+      if (!hasLocalChanges && !needsInitialWorkspace) {
+        // Poll the small revision document for remote edits, but don't write an unchanged workspace.
+        setLastSyncedAt(new Date());
+        setStatus('synced');
+        return;
       }
+
+      const revision = await FirebaseWorkspace.save(user.uid, localPayload);
+      lastPayload.current = localPayload;
+      lastRevision.current = revision;
       setLastSyncedAt(new Date());
       setStatus('synced');
     } catch (syncError) {
