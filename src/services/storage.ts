@@ -1,11 +1,11 @@
 import { FlashcardDeck, FlashcardFolder, FlashcardFolderGradients } from '../types/flashcards';
+import { notifyWorkspaceChanged, saveWorkspaceValue } from './workspaceChanges';
 
 const FLASHCARDS_KEY = 'studylab_flashcards_decks';
 const FLASHCARD_FOLDERS_KEY = 'studylab_flashcard_folders';
 const FLASHCARD_FOLDER_GRADIENTS_KEY = 'studylab_flashcard_folder_gradients';
 const THEME_KEY = 'studylab_theme_preference';
 const RECENT_BOOKS_KEY = 'studylab_recent_books';
-const SETTINGS_KEY = 'studylab_user_settings';
 
 export interface RecentBookItem {
   id: string;
@@ -26,7 +26,7 @@ export const StorageService = {
   },
 
   setTheme(theme: 'dark' | 'light'): void {
-    localStorage.setItem(THEME_KEY, theme);
+    saveWorkspaceValue(THEME_KEY, theme);
   },
 
   // Flashcards
@@ -42,7 +42,7 @@ export const StorageService = {
 
   saveDecks(decks: FlashcardDeck[]): void {
     try {
-      localStorage.setItem(FLASHCARDS_KEY, JSON.stringify(decks));
+      saveWorkspaceValue(FLASHCARDS_KEY, JSON.stringify(decks));
     } catch (e) {
       console.error('Failed to save flashcard decks to localStorage', e);
     }
@@ -60,7 +60,7 @@ export const StorageService = {
 
   saveFlashcardFolders(folders: FlashcardFolder[]): void {
     try {
-      localStorage.setItem(FLASHCARD_FOLDERS_KEY, JSON.stringify(folders));
+      saveWorkspaceValue(FLASHCARD_FOLDERS_KEY, JSON.stringify(folders));
     } catch (e) {
       console.error('Failed to save flashcard folders to localStorage', e);
     }
@@ -78,7 +78,7 @@ export const StorageService = {
 
   saveFlashcardFolderGradients(gradients: FlashcardFolderGradients): void {
     try {
-      localStorage.setItem(FLASHCARD_FOLDER_GRADIENTS_KEY, JSON.stringify(gradients));
+      saveWorkspaceValue(FLASHCARD_FOLDER_GRADIENTS_KEY, JSON.stringify(gradients));
     } catch (e) {
       console.error('Failed to save flashcard folder gradients to localStorage', e);
     }
@@ -101,7 +101,10 @@ export const StorageService = {
   },
 
   clearAllDecks(): void {
-    localStorage.removeItem(FLASHCARDS_KEY);
+    if (localStorage.getItem(FLASHCARDS_KEY) !== null) {
+      localStorage.removeItem(FLASHCARDS_KEY);
+      notifyWorkspaceChanged();
+    }
   },
 
   // Recent Books

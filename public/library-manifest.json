@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-07T07:29:43.369Z",
-  "sourceDirectory": "/home/user01/Desktop/ClassXbooks",
-  "totalPdfs": 105,
+  "generatedAt": "2026-11-07T08:24:56.749Z",
+  "sourceDirectory": "Bundled book library",
+  "totalPdfs": 102,
   "subjects": [
     {
       "id": "Science",
@@ -995,14 +995,14 @@
           "name": "Part A",
           "path": "IT/Part A",
           "displayName": "Part A",
-          "cover": "covers/it_domestic_cover-001.png",
+          "cover": "covers/ncert/it-class-x.png",
           "subfolders": [
             {
               "id": "IT/Part A/Base (Database)",
               "name": "Base (Database)",
               "path": "IT/Part A/Base (Database)",
               "displayName": "Database (Base)",
-              "cover": "covers/it_domestic_cover-001.png",
+              "cover": "covers/ncert/it-class-x.png",
               "subfolders": [],
               "files": [
                 {
@@ -1062,7 +1062,7 @@
               "name": "Calc",
               "path": "IT/Part A/Calc",
               "displayName": "Spreadsheet (Calc)",
-              "cover": "covers/it_domestic_cover-001.png",
+              "cover": "covers/ncert/it-class-x.png",
               "subfolders": [],
               "files": [
                 {
@@ -1112,7 +1112,7 @@
               "name": "Workplace Safety",
               "path": "IT/Part A/Workplace Safety",
               "displayName": "Workplace Safety",
-              "cover": "covers/it_domestic_cover-001.png",
+              "cover": "covers/ncert/it-class-x.png",
               "subfolders": [],
               "files": [
                 {
@@ -1152,7 +1152,7 @@
               "name": "Writer",
               "path": "IT/Part A/Writer",
               "displayName": "Documentation (Writer)",
-              "cover": "covers/it_domestic_cover-001.png",
+              "cover": "covers/ncert/it-class-x.png",
               "subfolders": [],
               "files": [
                 {
@@ -1188,32 +1188,21 @@
               ]
             }
           ],
-          "files": [
-            {
-              "id": "IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
-              "filename": "Domestic Data Entry Operator - Full Book.pdf",
-              "title": "Domestic Data Entry Operator - Full Book",
-              "path": "books/IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
-              "rawPath": "IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
-              "sizeBytes": 8784095,
-              "thumbnailUrl": "thumbnails/IT/Part A/Domestic Data Entry Operator - Full Book.png",
-              "isEconomicsException": false
-            }
-          ]
+          "files": []
         },
         {
           "id": "IT/Part B",
           "name": "Part B",
           "path": "IT/Part B",
           "displayName": "Part B",
-          "cover": "covers/it_employability_cover-001.png",
+          "cover": "covers/ncert/it-class-x.png",
           "subfolders": [
             {
               "id": "IT/Part B/Chapters",
               "name": "Chapters",
               "path": "IT/Part B/Chapters",
               "displayName": "Vocational Chapters",
-              "cover": "covers/it_employability_cover-001.png",
+              "cover": "covers/ncert/it-class-x.png",
               "subfolders": [],
               "files": [
                 {
@@ -1269,32 +1258,10 @@
               ]
             }
           ],
-          "files": [
-            {
-              "id": "IT/Part B/Employability Skills - Full Book.pdf",
-              "filename": "Employability Skills - Full Book.pdf",
-              "title": "Employability Skills - Full Book",
-              "path": "books/IT/Part B/Employability Skills - Full Book.pdf",
-              "rawPath": "IT/Part B/Employability Skills - Full Book.pdf",
-              "sizeBytes": 4216658,
-              "thumbnailUrl": "thumbnails/IT/Part B/Employability Skills - Full Book.png",
-              "isEconomicsException": false
-            }
-          ]
+          "files": []
         }
       ],
-      "files": [
-        {
-          "id": "IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
-          "filename": "CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
-          "title": "CBSE IT 402 Class X Curriculum - Session 2026-27",
-          "path": "books/IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
-          "rawPath": "IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
-          "sizeBytes": 1142600,
-          "thumbnailUrl": "thumbnails/IT/CBSE IT 402 Class X Curriculum - Session 2026-27.png",
-          "isEconomicsException": false
-        }
-      ]
+      "files": []
     }
   ]
 }

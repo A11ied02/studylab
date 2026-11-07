@@ -11,9 +11,18 @@ const manifest = JSON.parse(await fs.readFile(path.join(publicDir, 'library-mani
 const indexDir = path.join(publicDir, 'search');
 const indexPath = path.join(indexDir, 'index.json');
 
+function normalizeSearchText(value) {
+  return value.normalize('NFD').toLowerCase()
+    .replace(/\p{M}/gu, '')
+    .replace(/[\p{P}\p{S}]/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
 const miniSearch = new MiniSearch({
   fields: ['text', 'title', 'subject', 'folder'],
   storeFields: ['text', 'title', 'fileId', 'filePath', 'subjectId', 'subject', 'folder', 'scopeIds', 'page'],
+  tokenize: (text) => normalizeSearchText(text).split(' ').filter(Boolean),
 });
 
 let batch = [];
@@ -45,7 +54,13 @@ async function flushBatch() {
 async function indexFile(file, subject, folder, scopeIds) {
   const pdfPath = path.resolve(publicDir, file.path);
   const data = new Uint8Array(await fs.readFile(pdfPath));
-  const task = pdfjsLib.getDocument({ data, useSystemFonts: true });
+  const task = pdfjsLib.getDocument({
+    data,
+    useSystemFonts: true,
+    cMapUrl: new URL('../node_modules/pdfjs-dist/cmaps/', import.meta.url).href,
+    cMapPacked: true,
+    standardFontDataUrl: new URL('../node_modules/pdfjs-dist/standard_fonts/', import.meta.url).href,
+  });
   try {
     const document = await task.promise;
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
@@ -92,7 +107,7 @@ for (const subject of manifest.subjects) {
 await flushBatch();
 
 const envelope = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   indexedAt: new Date().toISOString(),
   pdfCount,
   documentCount: miniSearch.documentCount,

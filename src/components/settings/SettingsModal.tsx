@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
-  Sun, 
-  Moon, 
   Trash2, 
-  Palette, 
   BookOpen, 
   HardDrive, 
   Info, 
@@ -25,14 +22,42 @@ import {
   DEFAULT_IT_GRADIENTS, 
   BookScale 
 } from '../../context/LibraryContext';
-import { useTheme } from '../../context/ThemeContext';
 import { useFlashcards } from '../../context/FlashcardsContext';
 import { StorageService } from '../../services/storage';
 import { buildPdfSearchIndex, formatIndexSize, LoadedPdfSearchIndex, loadPdfSearchIndex, PdfIndexProgress } from '../../services/pdfSearch';
 import { WorkspaceBackup } from '../../services/workspaceBackup';
 import { useCloudSync } from '../../context/CloudSyncContext';
 
-type SettingsTab = 'appearance' | 'tiles' | 'science' | 'it' | 'flashcards' | 'library' | 'storage' | 'sync' | 'about';
+type SettingsTab = 'tiles' | 'science' | 'it' | 'flashcards' | 'library' | 'storage' | 'sync' | 'about';
+
+const GITHUB_REPOSITORY_URL = 'https://github.com/A11ied02/studylab';
+const OPEN_SOURCE_LICENSES = [
+  { name: 'React', license: 'MIT' },
+  { name: 'React DOM', license: 'MIT' },
+  { name: 'Firebase JavaScript SDK', license: 'Apache-2.0' },
+  { name: 'PDF.js', license: 'Apache-2.0' },
+  { name: 'JSZip', license: 'MIT OR GPL-3.0-or-later' },
+  { name: 'MiniSearch', license: 'MIT' },
+  { name: 'Lucide React', license: 'ISC' },
+  { name: 'clsx', license: 'MIT' },
+  { name: 'tailwind-merge', license: 'MIT' },
+  { name: 'Vite', license: 'MIT' },
+  { name: 'TypeScript', license: 'Apache-2.0' },
+  { name: 'Tailwind CSS', license: 'MIT' },
+  { name: 'PostCSS', license: 'MIT' },
+  { name: 'Autoprefixer', license: 'MIT' },
+  { name: '@vitejs/plugin-react', license: 'MIT' },
+  { name: 'gh-pages', license: 'MIT' },
+  { name: '@types/node', license: 'MIT' },
+  { name: '@types/react', license: 'MIT' },
+  { name: '@types/react-dom', license: 'MIT' },
+];
+const LICENSE_URLS: Record<string, string> = {
+  MIT: 'https://spdx.org/licenses/MIT.html',
+  'Apache-2.0': 'https://spdx.org/licenses/Apache-2.0.html',
+  ISC: 'https://spdx.org/licenses/ISC.html',
+  'GPL-3.0-or-later': 'https://spdx.org/licenses/GPL-3.0-or-later.html',
+};
 
 // Preset gradient pairs for filled folders
 const GRADIENT_PRESETS: Array<{ label: string; value: [string, string] }> = [
@@ -65,10 +90,9 @@ export const SettingsModal: React.FC = () => {
     bookScale,
     setBookScale
   } = useLibrary();
-  const { theme, setTheme } = useTheme();
   const { decks, infographics, folderGradients, setFolderGradient, resetFolderGradients } = useFlashcards();
-  const { intervalSeconds, setIntervalSeconds, status: syncStatus, lastSyncedAt, error: syncError, syncNow, deleteCloudWorkspace } = useCloudSync();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
+  const { intervalSeconds, setIntervalSeconds, status: syncStatus, hasUnsyncedChanges, lastSyncedAt, error: syncError, syncNow, allowNextNavigation, deleteCloudWorkspace } = useCloudSync();
+  const [activeTab, setActiveTab] = useState<SettingsTab>('tiles');
   const [isClosing, setIsClosing] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [confirmDeleteWorkspace, setConfirmDeleteWorkspace] = useState(false);
@@ -135,6 +159,9 @@ export const SettingsModal: React.FC = () => {
     setWorkspaceError('');
     try {
       await WorkspaceBackup.restore(pendingWorkspaceImport);
+      const synced = await syncNow();
+      if (!synced) throw new Error('The imported workspace could not be synced. It is still on this device; resolve the sync issue before reloading.');
+      allowNextNavigation();
       window.location.reload();
     } catch (error) {
       setWorkspaceError(error instanceof Error ? error.message : 'Could not import that workspace ZIP.');
@@ -150,6 +177,7 @@ export const SettingsModal: React.FC = () => {
     try {
       await deleteCloudWorkspace();
       await WorkspaceBackup.clear();
+      allowNextNavigation();
       window.location.reload();
     } catch (error) {
       setWorkspaceError(error instanceof Error ? error.message : 'Could not delete the workspace.');
@@ -216,18 +244,6 @@ export const SettingsModal: React.FC = () => {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
         {/* Left Side: Navigation */}
         <aside className="flex max-h-28 shrink-0 flex-row gap-1 overflow-x-auto border-b border-bg-border bg-[#0d0d0d] p-2 md:max-h-full md:w-64 md:flex-col md:space-y-1 md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:border-r md:p-5">
-          <button
-            onClick={() => setActiveTab('appearance')}
-            className={`w-auto min-w-max flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all md:w-full md:gap-3 md:px-4 md:py-3 md:text-sm ${
-              activeTab === 'appearance'
-                ? 'bg-[#1a73e8]/20 text-white font-semibold border border-[#4285f4]/40'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Palette size={18} strokeWidth={1.8} className={activeTab === 'appearance' ? 'text-[#4285f4]' : ''} />
-            <span>Appearance</span>
-          </button>
-
           <button
             onClick={() => setActiveTab('tiles')}
             className={`w-auto min-w-max flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all md:w-full md:gap-3 md:px-4 md:py-3 md:text-sm ${
@@ -327,49 +343,7 @@ export const SettingsModal: React.FC = () => {
 
         {/* Right Side: Tab Contents */}
         <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 md:max-w-2xl space-y-8">
-          {/* 1. Appearance Tab */}
-          {activeTab === 'appearance' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-white mb-1">Appearance</h2>
-                <p className="text-sm text-neutral-400">Choose between dark or light canvas theme.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setTheme('dark')}
-                  className={`p-5 rounded-2xl border flex flex-col items-start gap-3 transition-all ${
-                    theme === 'dark'
-                      ? 'border-[#4285f4] bg-[#1a73e8]/10 text-white'
-                      : 'border-bg-border bg-bg-card text-neutral-400 hover:border-white/20'
-                  }`}
-                >
-                  <Moon size={22} className={theme === 'dark' ? 'text-[#4285f4]' : 'text-neutral-400'} />
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-white">Dark Theme</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">Deep near-black minimal aesthetic</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setTheme('light')}
-                  className={`p-5 rounded-2xl border flex flex-col items-start gap-3 transition-all ${
-                    theme === 'light'
-                      ? 'border-[#4285f4] bg-[#1a73e8]/10 text-white'
-                      : 'border-bg-border bg-bg-card text-neutral-400 hover:border-white/20'
-                  }`}
-                >
-                  <Sun size={22} className={theme === 'light' ? 'text-[#4285f4]' : 'text-neutral-400'} />
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-white">Light Theme</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">High contrast day reading</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 2. Book Tiles Scale Tab */}
+          {/* Book Tiles Scale Tab */}
           {activeTab === 'tiles' && (
             <div className="space-y-6">
               <div>
@@ -841,8 +815,8 @@ export const SettingsModal: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4">
                   <div className="text-sm">
                     <span className="text-neutral-400">Status: </span>
-                    <span className={syncStatus === 'error' || syncStatus === 'conflict' ? 'text-red-300' : syncStatus === 'syncing' ? 'text-blue-300' : 'text-emerald-300'}>
-                      {syncStatus === 'idle' ? 'Waiting for first sync' : syncStatus === 'syncing' ? 'Syncing…' : syncStatus === 'error' ? 'Needs attention' : syncStatus === 'conflict' ? 'Cloud changed elsewhere' : 'Up to date'}
+                    <span className={syncStatus === 'error' || syncStatus === 'conflict' || hasUnsyncedChanges ? 'text-red-300' : syncStatus === 'syncing' ? 'text-amber-300' : 'text-emerald-300'}>
+                      {syncStatus === 'error' ? 'Needs attention' : syncStatus === 'conflict' ? 'Cloud changed elsewhere' : syncStatus === 'syncing' ? 'Syncing…' : hasUnsyncedChanges ? 'Changes not synced' : 'Up to date'}
                     </span>
                     {lastSyncedAt && <span className="ml-2 text-xs text-neutral-500">Last checked {lastSyncedAt.toLocaleTimeString()}</span>}
                   </div>
@@ -860,7 +834,7 @@ export const SettingsModal: React.FC = () => {
             </div>
           )}
 
-          {/* 7. About Tab */}
+          {/* About Tab */}
           {activeTab === 'about' && (
             <div className="space-y-6">
               <div>
@@ -877,10 +851,37 @@ export const SettingsModal: React.FC = () => {
                   <span className="text-neutral-400">Curriculum</span>
                   <span className="text-white">CBSE / NCERT Class 10</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-neutral-400">Architecture</span>
-                  <span className="text-white">React + Vite + GitHub Pages static bundle</span>
+                <div className="space-y-2 border-b border-white/5 pb-3">
+                  <p className="text-neutral-400">Created by</p>
+                  <p className="text-white">DaksshDev <span className="text-neutral-500">(alt account: A11ied02)</span></p>
+                  <p className="text-white">Codex Agent</p>
                 </div>
+                <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 pt-1 font-medium text-blue-300 hover:text-blue-200">
+                  Studylab on GitHub <span aria-hidden="true">↗</span>
+                </a>
+              </div>
+
+              <div className="rounded-2xl border border-bg-border bg-bg-card p-6">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-white">Open-source licenses</h3>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">Direct app and build dependencies with their declared package licenses. See each package’s license files for full terms.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {OPEN_SOURCE_LICENSES.map(({ name, license }) => (
+                    <div key={name} className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/[0.03] px-3 py-2 text-xs">
+                      <span className="truncate text-neutral-300">{name}</span>
+                      <span className="flex shrink-0 items-center gap-1 font-mono text-[10px]">
+                        {license.split(' OR ').map((licenseId, index) => (
+                          <React.Fragment key={licenseId}>
+                            {index > 0 && <span className="text-neutral-600">or</span>}
+                            <a href={LICENSE_URLS[licenseId]} target="_blank" rel="noreferrer" className="text-neutral-400 underline decoration-neutral-700 underline-offset-2 hover:text-blue-300">{licenseId}</a>
+                          </React.Fragment>
+                        ))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11px] leading-5 text-neutral-500">JSZip is available under MIT or GPL-3.0-or-later. Indirect dependencies carry the licenses published with their packages.</p>
               </div>
             </div>
           )}

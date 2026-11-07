@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { User } from 'firebase/auth';
 import { FirebaseWorkspace } from '../services/firebaseWorkspace';
 import { stableStringify, WorkspaceBackup } from '../services/workspaceBackup';
+import { saveWorkspaceValue, WORKSPACE_CHANGE_EVENT } from '../services/workspaceChanges';
 
 const SYNC_INTERVAL_KEY = 'studylab_sync_interval_seconds';
 const DEFAULT_SYNC_INTERVAL = 5;
@@ -14,7 +15,9 @@ interface CloudSyncContextValue {
   status: CloudSyncStatus;
   lastSyncedAt: Date | null;
   error: string;
-  syncNow: () => Promise<void>;
+  hasUnsyncedChanges: boolean;
+  syncNow: () => Promise<boolean>;
+  allowNextNavigation: () => void;
   deleteCloudWorkspace: () => Promise<void>;
 }
 
@@ -35,44 +38,64 @@ export const CloudSyncProvider: React.FC<{
   const [status, setStatus] = useState<CloudSyncStatus>(initialSerialized ? 'synced' : 'idle');
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(initialSerialized ? new Date() : null);
   const [error, setError] = useState('');
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(!initialSerialized);
   const syncing = useRef(false);
+  const dirtyRef = useRef(!initialSerialized);
+  const changeVersion = useRef(0);
+  const allowNavigationRef = useRef(false);
   const lastPayload = useRef<string | null>(initialSerialized);
   const lastRevision = useRef<string | null>(initialRevision);
+
+  const setDirty = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
+    setHasUnsyncedChanges(dirty);
+  }, []);
+
+  const allowNextNavigation = useCallback(() => {
+    allowNavigationRef.current = true;
+    setDirty(false);
+  }, [setDirty]);
 
   const setIntervalSeconds = (seconds: number) => {
     const safeSeconds = Math.max(5, Math.min(300, Math.round(seconds)));
     setIntervalState(safeSeconds);
-    localStorage.setItem(SYNC_INTERVAL_KEY, String(safeSeconds));
+    saveWorkspaceValue(SYNC_INTERVAL_KEY, String(safeSeconds));
   };
 
   const syncNow = useCallback(async () => {
-    if (syncing.current) return;
+    if (syncing.current) return false;
     syncing.current = true;
+    const versionAtStart = changeVersion.current;
     setStatus('syncing');
     setError('');
     try {
       const localSnapshot = await WorkspaceBackup.createCloudSnapshot();
       const localPayload = stableStringify(localSnapshot);
+      const hasLocalChanges = localPayload !== lastPayload.current;
+      if (hasLocalChanges || lastRevision.current === null) setDirty(true);
       const remoteRevision = await FirebaseWorkspace.getRevision(user.uid);
 
       if (remoteRevision !== lastRevision.current) {
         if (localPayload !== lastPayload.current) {
           setStatus('conflict');
+          setDirty(true);
           setError('Another signed-in session updated this workspace while you have local changes. Your changes were kept on this device and were not uploaded. Export a workspace ZIP before reloading if you need to keep them.');
-          return;
+          return false;
         }
         // The local workspace has no unsynced edits, so let the bootstrapper load the changed cloud copy.
+        allowNextNavigation();
         window.location.reload();
-        return;
+        return false;
       }
 
-      const hasLocalChanges = localPayload !== lastPayload.current;
       const needsInitialWorkspace = lastRevision.current === null;
       if (!hasLocalChanges && !needsInitialWorkspace) {
         // Poll the small revision document for remote edits, but don't write an unchanged workspace.
         setLastSyncedAt(new Date());
         setStatus('synced');
-        return;
+        const changedDuringSync = changeVersion.current !== versionAtStart;
+        setDirty(changedDuringSync);
+        return !changedDuringSync;
       }
 
       const revision = await FirebaseWorkspace.save(user.uid, localPayload);
@@ -80,13 +103,45 @@ export const CloudSyncProvider: React.FC<{
       lastRevision.current = revision;
       setLastSyncedAt(new Date());
       setStatus('synced');
+      const changedDuringSync = changeVersion.current !== versionAtStart;
+      setDirty(changedDuringSync);
+      return !changedDuringSync;
     } catch (syncError) {
       setStatus('error');
       setError(syncError instanceof Error ? syncError.message : 'Could not sync this workspace.');
+      return false;
     } finally {
       syncing.current = false;
     }
-  }, [user.uid]);
+  }, [user.uid, allowNextNavigation, setDirty]);
+
+  useEffect(() => {
+    const onWorkspaceChanged = () => {
+      changeVersion.current += 1;
+      setDirty(true);
+    };
+    const onOtherTabStorageChanged = (event: StorageEvent) => {
+      if (!event.key?.startsWith('studylab_')) return;
+      onWorkspaceChanged();
+    };
+    window.addEventListener(WORKSPACE_CHANGE_EVENT, onWorkspaceChanged);
+    window.addEventListener('storage', onOtherTabStorageChanged);
+    return () => {
+      window.removeEventListener(WORKSPACE_CHANGE_EVENT, onWorkspaceChanged);
+      window.removeEventListener('storage', onOtherTabStorageChanged);
+    };
+  }, [setDirty]);
+
+  useEffect(() => {
+    const protectUnsyncedWorkspace = (event: BeforeUnloadEvent) => {
+      if (allowNavigationRef.current) return;
+      if (!dirtyRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectUnsyncedWorkspace);
+    return () => window.removeEventListener('beforeunload', protectUnsyncedWorkspace);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => void syncNow(), intervalSeconds * 1000);
@@ -103,7 +158,8 @@ export const CloudSyncProvider: React.FC<{
     lastRevision.current = null;
     setLastSyncedAt(null);
     setStatus('idle');
-  }, [user.uid]);
+    setDirty(true);
+  }, [user.uid, setDirty]);
 
   const value = useMemo(() => ({
     intervalSeconds,
@@ -111,9 +167,11 @@ export const CloudSyncProvider: React.FC<{
     status,
     lastSyncedAt,
     error,
+    hasUnsyncedChanges,
     syncNow,
+    allowNextNavigation,
     deleteCloudWorkspace,
-  }), [intervalSeconds, status, lastSyncedAt, error, syncNow, deleteCloudWorkspace]);
+  }), [intervalSeconds, status, lastSyncedAt, error, hasUnsyncedChanges, syncNow, allowNextNavigation, deleteCloudWorkspace]);
 
   return <CloudSyncContext.Provider value={value}>{children}</CloudSyncContext.Provider>;
 };

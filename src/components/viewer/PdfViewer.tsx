@@ -10,14 +10,14 @@ import {
 import { BookFile } from '../../types/library';
 import { useLibrary } from '../../context/LibraryContext';
 import { chanakyaToUnicode } from '../../services/chanakyaToUnicode';
+import { findNormalizedTextRanges, parseCommaSeparatedKeywords } from '../../services/searchText';
+import { getPdfDocumentTask, releasePdfDocumentTask } from '../../services/pdfDocument';
 
 interface PageMeta { pageNum: number; width: number; height: number; }
 interface TextRange { start: number; end: number; }
 interface FindOccurrence extends TextRange { page: number; }
 
 const EMPTY_RANGES: TextRange[] = [];
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function highlightPdfText(container: HTMLElement, query: string, ranges: TextRange[] = []) {
   const spans = Array.from(container.querySelectorAll('span'));
@@ -36,8 +36,7 @@ function highlightPdfText(container: HTMLElement, query: string, ranges: TextRan
           }))
           .filter((range) => range.end > range.start)
       : (() => {
-          const matcher = new RegExp(escapeRegExp(query).replace(/\s+/g, '\\s+'), 'giu');
-          return Array.from(text.matchAll(matcher), (match) => ({ start: match.index ?? 0, end: (match.index ?? 0) + match[0].length }));
+          return findNormalizedTextRanges(text, query);
         })();
     if (!highlights.length) return;
 
@@ -71,6 +70,7 @@ export const PdfViewer: React.FC<{
 }) => {
   const { getAssetUrl } = useLibrary();
   const pdfUrl = getAssetUrl(file.path);
+  const pdfWorkerUrl = getAssetUrl('pdf.worker.min.mjs');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -94,19 +94,10 @@ export const PdfViewer: React.FC<{
   const findRequestId = useRef(0);
 
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = getAssetUrl('pdf.worker.min.mjs');
-  }, [getAssetUrl]);
-
-  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const task = pdfjsLib.getDocument({
-      url: pdfUrl,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
-      cMapPacked: true,
-      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/',
-    });
+    const task = getPdfDocumentTask(pdfUrl, pdfWorkerUrl);
     task.promise.then(async (doc) => {
       if (cancelled) return;
       setPdfDoc(doc);
@@ -120,8 +111,8 @@ export const PdfViewer: React.FC<{
     }).catch((err) => {
       if (!cancelled) { setError(err.message || 'Failed to load PDF'); setLoading(false); }
     });
-    return () => { cancelled = true; task.destroy(); };
-  }, [pdfUrl]);
+    return () => { cancelled = true; releasePdfDocumentTask(pdfUrl, task); };
+  }, [pdfUrl, pdfWorkerUrl]);
 
   useEffect(() => {
     if (!containerRef.current || !pagesMeta.length) return;
@@ -184,11 +175,12 @@ export const PdfViewer: React.FC<{
     findRequestId.current += 1;
     setCurrentPage(initialPage);
     setVisiblePages(new Set([initialPage, initialPage + 1]));
-    setFindQuery('');
+    setFindQuery(initialSearchQuery);
+    setFindOpen(Boolean(initialSearchQuery.trim()));
     setFindMatches([]);
     setFindPageRanges(new Map());
     setFindError('');
-  }, [file.id, initialPage]);
+  }, [file.id, initialPage, initialSearchQuery]);
 
   useEffect(() => {
     if (!pagesMeta.length || !containerRef.current) return;
@@ -206,9 +198,8 @@ export const PdfViewer: React.FC<{
     scrollToPage(match.page);
   };
 
-  const runDocumentFind = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const term = findQuery.trim();
+  const searchPages = useCallback(async (rawTerm: string, pageNumbers: number[]) => {
+    const term = rawTerm.trim();
     if (!term) return;
     if (!pdfDoc) {
       setFindError('The PDF is still loading. Try again in a moment.');
@@ -220,19 +211,23 @@ export const PdfViewer: React.FC<{
     setFindMatches([]);
     setFindPageRanges(new Map());
     try {
-      const matcher = new RegExp(escapeRegExp(term).replace(/\s+/g, '\\s+'), 'giu');
       const matches: FindOccurrence[] = [];
       const pageRanges = new Map<number, TextRange[]>();
-      for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber += 1) {
+      const keywords = parseCommaSeparatedKeywords(term);
+      for (const pageNumber of pageNumbers) {
         if (requestId !== findRequestId.current) return;
         const page = await pdfDoc.getPage(pageNumber);
         const content = await page.getTextContent();
         const textItems = content.items.filter((item): item is typeof item & { str: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0);
         const pageText = textItems.map((item) => item.str).join(' ');
-        const ranges: TextRange[] = Array.from(pageText.matchAll(matcher), (match) => {
-          const start = match.index ?? 0;
-          return { start, end: start + match[0].length };
-        });
+        const foundRanges = (keywords.length ? keywords.flatMap((keyword) => findNormalizedTextRanges(pageText, keyword)) : findNormalizedTextRanges(pageText, term))
+          .sort((a, b) => a.start - b.start || a.end - b.end);
+        const ranges = foundRanges.reduce<TextRange[]>((merged, range) => {
+          const previous = merged[merged.length - 1];
+          if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+          else merged.push({ ...range });
+          return merged;
+        }, []);
         if (ranges.length) {
           pageRanges.set(pageNumber, ranges);
           ranges.forEach((range) => matches.push({ page: pageNumber, ...range }));
@@ -242,17 +237,33 @@ export const PdfViewer: React.FC<{
       setFindPageRanges(pageRanges);
       setFindMatches(matches);
       if (matches.length) {
-        setActiveFindIndex(0);
-        setVisiblePages((previous) => new Set([...previous, matches[0].page, matches[0].page - 1, matches[0].page + 1]));
-        window.setTimeout(() => scrollToPage(matches[0].page), 0);
+        const preferredIndex = matches.findIndex((match) => match.page === initialSearchPage);
+        const firstMatchIndex = preferredIndex >= 0 ? preferredIndex : 0;
+        const firstMatch = matches[firstMatchIndex];
+        setActiveFindIndex(firstMatchIndex);
+        setVisiblePages((previous) => new Set([...previous, firstMatch.page, firstMatch.page - 1, firstMatch.page + 1]));
+        window.setTimeout(() => scrollToPage(firstMatch.page), 0);
       }
-      else setFindError('No exact matches in this PDF.');
+      else setFindError('No matches found in this PDF.');
     } catch (error) {
       setFindError(error instanceof Error ? error.message : 'Could not search this PDF.');
     } finally {
       if (requestId === findRequestId.current) setFindLoading(false);
     }
+  }, [pdfDoc, initialSearchPage]);
+
+  const runDocumentFind = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (findQuery.trim()) void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1));
   };
+
+  useEffect(() => {
+    if (!pdfDoc || !initialSearchQuery.trim()) return;
+    setFindOpen(true);
+    setFindQuery(initialSearchQuery);
+    void searchPages(initialSearchQuery, [Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages))]);
+    window.setTimeout(() => findInputRef.current?.focus(), 0);
+  }, [pdfDoc, file.id, initialSearchQuery, initialSearchPage, searchPages]);
 
   const handlePdfCopy = (event: React.ClipboardEvent<HTMLDivElement>) => {
     if (file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLocaleLowerCase() !== 'hindi') return;
@@ -422,9 +433,22 @@ export const PdfViewer: React.FC<{
         className="flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center gap-4 py-6 px-4 select-text"
       >
         {loading && (
-          <div className="flex flex-col items-center gap-3 mt-24">
-            <Loader2 size={24} className="text-accent animate-spin" />
-            <p className="text-xs text-[#555]">Loading…</p>
+          <div className="w-full max-w-[42rem] animate-pulse px-1" role="status" aria-label="Loading PDF page">
+            <div className="relative mx-auto aspect-[0.74] w-full overflow-hidden rounded-sm bg-[#f4f4f5] p-8 shadow-[0_8px_36px_rgba(0,0,0,.35)] sm:p-12">
+              <div className="mb-10 h-5 w-2/5 rounded bg-neutral-200" />
+              <div className="space-y-3">
+                <div className="h-2.5 w-full rounded bg-neutral-200" />
+                <div className="h-2.5 w-[94%] rounded bg-neutral-200" />
+                <div className="h-2.5 w-[97%] rounded bg-neutral-200" />
+                <div className="h-2.5 w-[83%] rounded bg-neutral-200" />
+                <div className="mt-7 h-32 rounded-lg bg-neutral-200/80" />
+                <div className="h-2.5 w-full rounded bg-neutral-200" />
+                <div className="h-2.5 w-[89%] rounded bg-neutral-200" />
+                <div className="h-2.5 w-[95%] rounded bg-neutral-200" />
+                <div className="h-2.5 w-[68%] rounded bg-neutral-200" />
+              </div>
+              <div className="absolute bottom-5 left-0 right-0 text-center text-[11px] font-medium text-neutral-400">Preparing PDF…</div>
+            </div>
           </div>
         )}
         {error && (

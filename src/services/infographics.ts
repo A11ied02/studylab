@@ -1,4 +1,5 @@
 import { FlashcardInfographic } from '../types/flashcards';
+import { notifyWorkspaceChanged } from './workspaceChanges';
 
 const DATABASE_NAME = 'studylab-workspace';
 const STORE_NAME = 'infographics';
@@ -44,13 +45,16 @@ export const InfographicsStorage = {
 
   async put(infographic: FlashcardInfographic): Promise<void> {
     await runTransaction<IDBValidKey>((store) => store.put(infographic));
+    notifyWorkspaceChanged();
   },
 
   async remove(id: string): Promise<void> {
     await runTransaction<undefined>((store) => store.delete(id));
+    notifyWorkspaceChanged();
   },
 
   async clear(): Promise<void> {
     await runTransaction<undefined>((store) => store.clear());
+    notifyWorkspaceChanged();
   },
 };

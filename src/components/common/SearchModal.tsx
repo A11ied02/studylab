@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, FileText, Filter, LoaderCircle, Search, X } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { LoadedPdfSearchIndex, PdfTextMatch, loadPdfSearchIndex, searchPdfPages } from '../../services/pdfSearch';
+import { parseCommaSeparatedKeywords } from '../../services/searchText';
 import { BookFolder, Subject } from '../../types/library';
 import { HighlightedText } from './HighlightedText';
 
@@ -73,6 +74,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   const [query, setQuery] = useState('');
   const [selectedScopeIds, setSelectedScopeIds] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isKeywordSettingsOpen, setIsKeywordSettingsOpen] = useState(false);
+  const [minKeywordMatches, setMinKeywordMatches] = useState(1);
   const [results, setResults] = useState<PdfTextMatch[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [status, setStatus] = useState<SearchStatus>('idle');
@@ -80,12 +83,23 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   const inputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef(0);
   const loadedIndexRef = useRef<LoadedPdfSearchIndex | null>(null);
+  const keywordTerms = useMemo(() => parseCommaSeparatedKeywords(query), [query]);
+  const keywordSignature = keywordTerms.join('\u0000');
+  const previousKeywordSignatureRef = useRef(keywordSignature);
+
+  useEffect(() => {
+    if (previousKeywordSignatureRef.current === keywordSignature) return;
+    previousKeywordSignatureRef.current = keywordSignature;
+    setMinKeywordMatches(Math.max(1, keywordTerms.length));
+    setIsKeywordSettingsOpen(false);
+  }, [keywordSignature, keywordTerms.length]);
 
   useEffect(() => {
     if (!isOpen) return;
     setQuery(initialQuery);
     setSelectedScopeIds([]);
     setIsFilterOpen(false);
+    setIsKeywordSettingsOpen(false);
     setResults([]);
     setCurrentPage(1);
     setStatus('idle');
@@ -129,7 +143,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   const pageStart = (currentPage - 1) * RESULTS_PER_PAGE;
   const visibleResults = results.slice(pageStart, pageStart + RESULTS_PER_PAGE);
 
-  const runSearch = async (scope = selectedScopeIds) => {
+  const runSearch = async (scope = selectedScopeIds, minimumMatches = minKeywordMatches) => {
     const term = query.trim();
     if (!term) return;
     const requestId = ++requestRef.current;
@@ -141,7 +155,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
       const index = loadedIndexRef.current ?? await loadPdfSearchIndex(getAssetUrl);
       loadedIndexRef.current = index;
       if (requestId !== requestRef.current) return;
-      const matches = searchPdfPages(index, term, scope);
+      const matches = searchPdfPages(index, term, scope, { minKeywordMatches: minimumMatches });
       setResults(matches);
       setStatus('done');
     } catch (searchError) {
@@ -243,22 +257,59 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
             </button>
           </form>
 
-          <div className="relative mt-3">
-            <button
-              onClick={() => setIsFilterOpen((open) => !open)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neutral-300 hover:border-white/20 hover:bg-white/[0.06]"
-              aria-expanded={isFilterOpen}
-            >
-              <Filter size={13} />
-              <span>{scopeLabel}</span>
-              <ChevronDown size={13} className={`transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-            </button>
+          <div className="relative mt-3 flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <button
+                onClick={() => setIsFilterOpen((open) => !open)}
+                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neutral-300 hover:border-white/20 hover:bg-white/[0.06]"
+                aria-expanded={isFilterOpen}
+              >
+                <Filter size={13} className="shrink-0" />
+                <span className="truncate">{scopeLabel}</span>
+                <ChevronDown size={13} className={`shrink-0 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {isFilterOpen && (
-                <div className="absolute left-0 top-full z-20 mt-2 max-h-[55vh] w-72 overflow-y-auto rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
-                <button onClick={() => { setSelectedScopeIds([]); setIsFilterOpen(false); if (status === 'done') void runSearch([]); }} className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs text-blue-300 hover:bg-white/[0.05]">Search all subjects and folders</button>
-                <div className="space-y-0.5">{scopeTree.map((scope) => renderScope(scope))}</div>
-                <p className="px-3 pb-1 pt-2 text-[10px] text-neutral-600">No selection searches everything. Select a subject or folders to narrow results.</p>
+              {isFilterOpen && (
+                <div className="absolute left-0 top-full z-20 mt-2 max-h-[55vh] w-72 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
+                  <button onClick={() => { setSelectedScopeIds([]); setIsFilterOpen(false); if (status === 'done') void runSearch([]); }} className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs text-blue-300 hover:bg-white/[0.05]">Search all subjects and folders</button>
+                  <div className="space-y-0.5">{scopeTree.map((scope) => renderScope(scope))}</div>
+                  <p className="px-3 pb-1 pt-2 text-[10px] text-neutral-600">No selection searches everything. Select a subject or folders to narrow results.</p>
+                </div>
+              )}
+            </div>
+
+            {keywordTerms.length > 1 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsKeywordSettingsOpen((open) => !open)}
+                  aria-label="Set keyword match threshold"
+                  aria-expanded={isKeywordSettingsOpen}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition ${isKeywordSettingsOpen ? 'border-blue-400/50 bg-blue-500/10 text-blue-200' : 'border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.06]'}`}
+                >K</button>
+                {isKeywordSettingsOpen && (
+                  <div className="absolute left-0 top-full z-20 mt-2 w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 shadow-xl">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium text-neutral-200">Keywords that must match</span>
+                      <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-semibold tabular-nums text-blue-200">{minKeywordMatches} / {keywordTerms.length}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={keywordTerms.length}
+                      value={Math.min(minKeywordMatches, keywordTerms.length)}
+                      onChange={(event) => {
+                        const nextMinimum = Number(event.target.value);
+                        setMinKeywordMatches(nextMinimum);
+                        if (status === 'done') void runSearch(selectedScopeIds, nextMinimum);
+                      }}
+                      aria-label="Minimum matching keywords"
+                      className="w-full accent-blue-500"
+                    />
+                    <div className="mt-1 flex justify-between text-[10px] text-neutral-500"><span>1 keyword</span><span>All {keywordTerms.length}</span></div>
+                    <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">A page must contain at least this many of your comma-separated keywords.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

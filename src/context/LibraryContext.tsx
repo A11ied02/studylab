@@ -3,6 +3,8 @@ import { BookFile, BookFolder, FolderNameMap, LibraryManifest, Subject } from '.
 import { sortSubjects, SUBJECT_ORDER } from '../constants/subjectOrder';
 import { setFolderNameMap, getFolderDisplayName } from '../services/folderMapper';
 import { StorageService } from '../services/storage';
+import { preloadPdfDocument } from '../services/pdfDocument';
+import { saveWorkspaceValue } from '../services/workspaceChanges';
 
 export interface ScienceGradients {
   bio: [string, string];
@@ -107,7 +109,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setBookScale = (scale: BookScale) => {
     setBookScaleState(scale);
     try {
-      localStorage.setItem(BOOK_SCALE_KEY, scale);
+      saveWorkspaceValue(BOOK_SCALE_KEY, scale);
     } catch {}
   };
 
@@ -128,7 +130,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setScienceGradients = (newGrads: ScienceGradients) => {
     setScienceGradientsState(newGrads);
     try {
-      localStorage.setItem(SCIENCE_GRADIENTS_KEY, JSON.stringify(newGrads));
+      saveWorkspaceValue(SCIENCE_GRADIENTS_KEY, JSON.stringify(newGrads));
     } catch {}
   };
 
@@ -149,7 +151,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setItGradients = (newGrads: ItGradients) => {
     setItGradientsState(newGrads);
     try {
-      localStorage.setItem(IT_GRADIENTS_KEY, JSON.stringify(newGrads));
+      saveWorkspaceValue(IT_GRADIENTS_KEY, JSON.stringify(newGrads));
     } catch {}
   };
 
@@ -270,6 +272,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const openPdf = (file: BookFile, pageNum = 1, searchQuery = '') => {
+    preloadPdfDocument(getAssetUrl(file.path), getAssetUrl('pdf.worker.min.mjs'));
     setActivePdf(file);
     setActivePdfPage(Math.max(1, pageNum));
     setActivePdfSearchQuery(searchQuery.trim());

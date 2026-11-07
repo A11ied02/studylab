@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, FileText, Search, Settings, X, LogOut, RefreshCw } from 'lucide-react';
+import { ChevronRight, FileText, Search, Settings, X, LogOut, RefreshCw, LoaderCircle } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCloudSync } from '../../context/CloudSyncContext';
@@ -20,11 +20,26 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signOutBusy, setSignOutBusy] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const isFlashcards = activeTab === 'flashcards';
   const { user, signOutUser } = useAuth();
-  const { intervalSeconds, status, lastSyncedAt, error, syncNow } = useCloudSync();
+  const { intervalSeconds, status, lastSyncedAt, error, syncNow, hasUnsyncedChanges } = useCloudSync();
+  const syncLabel = status === 'syncing'
+    ? 'Syncing'
+    : status === 'error' || status === 'conflict'
+      ? 'Sync needs attention'
+      : hasUnsyncedChanges
+        ? 'Unsynced changes'
+        : 'Synced';
+  const syncDotColor = status === 'syncing'
+    ? 'bg-amber-400'
+    : status === 'error' || status === 'conflict' || hasUnsyncedChanges
+      ? 'bg-red-500'
+      : 'bg-emerald-500';
 
   useEffect(() => {
     setShowSuggestions(false);
@@ -64,6 +79,23 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
   const openFullTextSearch = () => {
     onOpenGlobalSearch(query.trim());
     setShowSuggestions(false);
+  };
+
+  const handleSignOut = async () => {
+    setSignOutBusy(true);
+    setSignOutError('');
+    try {
+      if (hasUnsyncedChanges && !(await syncNow())) {
+        setSignOutError('Your workspace could not be synced, so you are still signed in. Resolve the sync issue and try again.');
+        return;
+      }
+      await signOutUser();
+      setConfirmSignOut(false);
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : 'Could not sign out.');
+    } finally {
+      setSignOutBusy(false);
+    }
   };
 
   const mobileSearchActions = (
@@ -115,13 +147,16 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
           <button
             type="button"
             onClick={() => setAccountOpen((open) => !open)}
-            aria-label="Open account and sync details"
-            title="Account and sync details"
-            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-bg-surface transition hover:border-blue-400/70"
+            aria-label={`Open account and sync details. ${syncLabel}.`}
+            title={`Account and sync details · ${syncLabel}`}
+            className="relative flex h-9 w-9 items-center justify-center overflow-visible rounded-full border border-white/15 bg-bg-surface transition hover:border-blue-400/70"
           >
-            {user?.photoURL
-              ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-              : <span className="text-sm font-semibold text-blue-200">{user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}</span>}
+            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+              {user?.photoURL
+                ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                : <span className="text-sm font-semibold text-blue-200">{user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}</span>}
+            </span>
+            <span aria-hidden="true" className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#111] ${syncDotColor}`} />
           </button>
           {accountOpen && (
             <div className="absolute right-0 top-full z-50 mt-3 w-72 rounded-2xl border border-bg-border bg-[#151515] p-4 shadow-modal">
@@ -137,8 +172,8 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
               <div className="space-y-2 py-3 text-xs">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-neutral-400">Sync status</span>
-                  <span className={status === 'error' || status === 'conflict' ? 'text-red-300' : status === 'syncing' ? 'text-blue-300' : 'text-emerald-300'}>
-                    {status === 'idle' ? 'Waiting for first sync' : status === 'syncing' ? 'Syncing…' : status === 'error' ? 'Sync issue' : status === 'conflict' ? 'Cloud conflict' : 'Synced'}
+                  <span className={status === 'error' || status === 'conflict' || hasUnsyncedChanges ? 'text-red-300' : status === 'syncing' ? 'text-amber-300' : 'text-emerald-300'}>
+                    {status === 'error' ? 'Sync issue' : status === 'conflict' ? 'Cloud conflict' : status === 'syncing' ? 'Syncing…' : hasUnsyncedChanges ? 'Changes not synced' : 'Synced'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
@@ -149,7 +184,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
               </div>
               <div className="flex gap-2 border-t border-white/10 pt-3">
                 <button type="button" onClick={() => void syncNow()} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 hover:bg-blue-500/25"><RefreshCw size={13} /> Sync now</button>
-                <button type="button" onClick={() => void signOutUser()} className="flex items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-neutral-300 hover:bg-white/10"><LogOut size={13} /> Sign out</button>
+                <button type="button" onClick={() => { setAccountOpen(false); setSignOutError(''); setConfirmSignOut(true); }} className="flex items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-neutral-300 hover:bg-white/10"><LogOut size={13} /> Sign out</button>
               </div>
             </div>
           )}
@@ -248,6 +283,23 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
           <span className="text-lg font-bold leading-none">A</span>
         </button>
       </div>
+
+      {confirmSignOut && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !signOutBusy) setConfirmSignOut(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="confirm-sign-out-title" className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151515] p-5 shadow-[0_30px_100px_rgba(0,0,0,.65)]">
+            <h2 id="confirm-sign-out-title" className="text-base font-semibold text-white">Sign out of Studylab?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-400">We’ll sync your latest workspace changes before signing out. If syncing fails, you’ll stay signed in.</p>
+            {signOutError && <p role="alert" className="mt-3 text-xs leading-5 text-red-300">{signOutError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirmSignOut(false)} disabled={signOutBusy} className="rounded-lg border border-white/10 px-3.5 py-2 text-sm text-neutral-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => void handleSignOut()} disabled={signOutBusy || status === 'syncing'} className="flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-50">
+                {signOutBusy ? <LoaderCircle size={14} className="animate-spin" /> : <LogOut size={14} />}
+                {signOutBusy ? 'Syncing…' : 'Sign out'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 };

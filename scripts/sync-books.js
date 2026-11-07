@@ -95,9 +95,8 @@ function getCoverForPath(relPath) {
   if (norm.includes('Sparsh')) return 'covers/ncert/sparsh.jpg';
   if (norm.includes('Sanchayan')) return 'covers/ncert/sanchayan.jpg';
   if (norm === 'IT') return 'covers/ncert/it-class-x.png';
-  if (norm.includes('Part A')) return 'covers/it_domestic_cover-001.png';
-  if (norm.includes('Part B')) return 'covers/it_employability_cover-001.png';
-  return 'covers/social-science.png';
+  if (norm.includes('Part A') || norm.includes('Part B')) return 'covers/ncert/it-class-x.png';
+  return 'covers/ncert/social-science.png';
 }
 
 function cleanTitle(filename, relFolderPath) {
@@ -141,6 +140,13 @@ function scanDir(dir, relPath = '') {
         });
       }
     } else if (item.toLowerCase().endsWith('.pdf')) {
+      const normalizedPdfPath = itemRelPath.replace(/\\/g, '/');
+      const isExcludedItPdf = normalizedPdfPath.startsWith('IT/') && (
+        /full book/i.test(item)
+        || item === 'CBSE IT 402 Class X Curriculum - Session 2026-27.pdf'
+      );
+      if (isExcludedItPdf) continue;
+
       totalPdfCount++;
 
       // Copy file to public/books if source is different
@@ -269,7 +275,7 @@ const subjects = rootScan.subfolders.map(folder => ({
 
 const manifest = {
   generatedAt: new Date().toISOString(),
-  sourceDirectory: sourceDir,
+  sourceDirectory: 'Bundled book library',
   totalPdfs: totalPdfCount,
   subjects: subjects,
 };

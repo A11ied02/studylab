@@ -2,6 +2,7 @@ import MiniSearch from 'minisearch';
 import * as pdfjsLib from 'pdfjs-dist';
 import { BookFile, FolderNameMap, Subject } from '../types/library';
 import { getFolderDisplayName } from './folderMapper';
+import { normalizeSearchText, normalizeSearchTextWithMap, parseCommaSeparatedKeywords } from './searchText';
 
 export interface PageSearchDocument {
   id: string;
@@ -17,7 +18,7 @@ export interface PageSearchDocument {
 }
 
 export interface SearchIndexEnvelope {
-  schemaVersion: 2;
+  schemaVersion: 3;
   indexedAt: string;
   pdfCount: number;
   documentCount: number;
@@ -44,7 +45,7 @@ export interface PdfIndexProgress {
   stage: 'extracting' | 'building';
 }
 
-const INDEX_SCHEMA_VERSION = 2 as const;
+const INDEX_SCHEMA_VERSION = 3 as const;
 const INDEX_DB_NAME = 'studylab-search-index';
 const INDEX_DB_STORE = 'indices';
 const INDEX_DB_KEY = 'current';
@@ -53,6 +54,7 @@ const INDEX_DB_KEY = 'current';
 const MINI_SEARCH_OPTIONS = {
   fields: ['text', 'title', 'subject', 'folder'],
   storeFields: ['text', 'title', 'fileId', 'filePath', 'subjectId', 'subject', 'folder', 'scopeIds', 'page'],
+  tokenize: (text: string) => normalizeSearchText(text).split(' ').filter(Boolean),
 };
 
 let loadedIndex: LoadedPdfSearchIndex | null = null;
@@ -251,35 +253,66 @@ export async function buildPdfSearchIndex(
 
 function makeSnippet(text: string, query: string): string {
   const normalized = cleanText(text);
-  const lowerText = normalized.toLocaleLowerCase();
-  const lowerQuery = query.toLocaleLowerCase().trim();
-  const terms = lowerQuery.split(/\s+/).filter(Boolean);
-  const foundAt = lowerText.indexOf(lowerQuery);
-  const startAt = foundAt >= 0 ? foundAt : Math.max(0, lowerText.indexOf(terms[0] ?? ''));
+  const mappedText = normalizeSearchTextWithMap(normalized);
+  const lowerQuery = normalizeSearchText(query);
+  const keywords = parseCommaSeparatedKeywords(query);
+  const terms = keywords.length ? keywords : lowerQuery.split(' ').filter(Boolean);
+  const foundAt = lowerQuery ? mappedText.value.indexOf(lowerQuery) : -1;
+  const termLocations = terms.map((term) => mappedText.value.indexOf(term)).filter((index) => index >= 0);
+  const normalizedStart = foundAt >= 0 ? foundAt : termLocations.length ? Math.min(...termLocations) : 0;
+  const startAt = mappedText.sourceRanges[normalizedStart]?.start ?? 0;
   const start = Math.max(0, startAt - 90);
   const end = Math.min(normalized.length, Math.max(startAt, 0) + 180);
   return `${start > 0 ? '…' : ''}${normalized.slice(start, end)}${end < normalized.length ? '…' : ''}`;
+}
+
+export interface SearchPdfPagesOptions {
+  fileId?: string;
+  limit?: number;
+  /** Minimum number of explicit comma-separated keywords that a page must match. */
+  minKeywordMatches?: number;
 }
 
 export function searchPdfPages(
   loaded: LoadedPdfSearchIndex,
   rawQuery: string,
   scopeIds: string[] = [],
-  fileId?: string,
-  limit = 100,
+  options: SearchPdfPagesOptions = {},
 ): PdfTextMatch[] {
   const query = rawQuery.trim();
   if (!query) return [];
-  const results = loaded.index.search(query, {
-    prefix: true,
-    fuzzy: 0.15,
-    combineWith: 'AND',
-    filter: (result) => {
-      const document = result as typeof result & PageSearchDocument;
-      const docScopes = document.scopeIds ?? [document.subjectId];
-      return (!scopeIds.length || docScopes.some((scopeId) => scopeIds.includes(scopeId))) && (!fileId || document.fileId === fileId);
-    },
-  });
+  const keywords = parseCommaSeparatedKeywords(query);
+  const minimumMatches = keywords.length
+    ? Math.max(1, Math.min(keywords.length, options.minKeywordMatches ?? keywords.length))
+    : 0;
+  const filter = (result: { id: string } & Record<string, unknown>) => {
+    const document = result as typeof result & PageSearchDocument;
+    const docScopes = document.scopeIds ?? [document.subjectId];
+    return (!scopeIds.length || docScopes.some((scopeId) => scopeIds.includes(scopeId)))
+      && (!options.fileId || document.fileId === options.fileId);
+  };
+
+  let results: Array<{ id: string; score: number }>;
+  if (keywords.length) {
+    const matchesById = new Map<string, { id: string; score: number; keywordMatches: number }>();
+    for (const keyword of keywords) {
+      for (const result of loaded.index.search(keyword, { prefix: true, fuzzy: 0.15, combineWith: 'AND', filter })) {
+        const id = String(result.id);
+        const previous = matchesById.get(id);
+        matchesById.set(id, {
+          id,
+          score: (previous?.score ?? 0) + result.score,
+          keywordMatches: (previous?.keywordMatches ?? 0) + 1,
+        });
+      }
+    }
+    results = [...matchesById.values()]
+      .filter((result) => result.keywordMatches >= minimumMatches)
+      .map(({ id, score }) => ({ id, score }));
+  } else {
+    results = loaded.index.search(query, { prefix: true, fuzzy: 0.15, combineWith: 'AND', filter })
+      .map((result) => ({ id: String(result.id), score: result.score }));
+  }
 
   return results.map((result) => {
     const document = loaded.index.getStoredFields(result.id) as Omit<PageSearchDocument, 'id'>;
@@ -290,10 +323,10 @@ export function searchPdfPages(
       snippet: makeSnippet(document.text ?? '', query),
     };
   }).sort((a, b) => {
-    const term = query.toLocaleLowerCase();
-    const exactA = a.text.toLocaleLowerCase().includes(term) ? 1 : 0;
-    const exactB = b.text.toLocaleLowerCase().includes(term) ? 1 : 0;
+    const normalizedQuery = normalizeSearchText(query);
+    const exactA = normalizedQuery && normalizeSearchText(a.text).includes(normalizedQuery) ? 1 : 0;
+    const exactB = normalizedQuery && normalizeSearchText(b.text).includes(normalizedQuery) ? 1 : 0;
     return exactB - exactA || b.score - a.score;
-  }).slice(0, limit);
+  }).slice(0, options.limit ?? 100);
 }
 

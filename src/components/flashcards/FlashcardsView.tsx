@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { useFlashcards } from '../../context/FlashcardsContext';
+import { saveWorkspaceValue } from '../../services/workspaceChanges';
 import { useLibrary } from '../../context/LibraryContext';
 import { BookFolder, Subject } from '../../types/library';
 import { FlashcardDeck, FlashcardFolder, FlashcardFolderOption, FlashcardInfographic } from '../../types/flashcards';
@@ -354,7 +355,7 @@ export const FlashcardsView: React.FC<{ searchQuery?: string }> = ({ searchQuery
 
   useEffect(() => {
     try {
-      localStorage.setItem('studylab_flashcards_view', viewMode);
+      saveWorkspaceValue('studylab_flashcards_view', viewMode);
     } catch {
       // Ignore unavailable local storage.
     }
