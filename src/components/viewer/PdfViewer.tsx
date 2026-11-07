@@ -261,10 +261,9 @@ export const PdfViewer: React.FC<{
   }, [pagesMeta, initialPage, initialSearchQuery, numPages]);
 
   const jumpToFindMatch = (index: number) => {
-    if (!findMatches.length) return;
-    const wrappedIndex = (index + findMatches.length) % findMatches.length;
-    const match = findMatches[wrappedIndex];
-    setActiveFindIndex(wrappedIndex);
+    if (index < 0 || index >= findMatches.length) return;
+    const match = findMatches[index];
+    setActiveFindIndex(index);
     setVisiblePages((previous) => new Set([...previous, match.page, match.page - 1, match.page + 1]));
     scrollToPage(match.page);
   };
@@ -606,8 +605,8 @@ export const PdfViewer: React.FC<{
               )}
             </div>
           )}
-          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={!findMatches.length} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
-          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={!findMatches.length} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
+          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={!findMatches.length || activeFindIndex <= 0} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
+          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={!findMatches.length || activeFindIndex >= findMatches.length - 1} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
           <button type="button" onClick={() => clearDocumentFind(true)} aria-label="Close find" className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={14} /></button>
           {findError && <span className="absolute left-3 top-full mt-2 rounded-md bg-[#171717] px-2 py-1 text-[10px] text-neutral-400">{findError}</span>}
         </form>
