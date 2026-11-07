@@ -1,0 +1,12 @@
+// Copy or rename this file to firebase.ts, then paste your Firebase web app config into firebaseConfig.
+// firebase.ts is ignored by Git so your project config stays local to this checkout.
+import { FirebaseOptions } from 'firebase/app';
+
+export const firebaseConfig: FirebaseOptions = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  messagingSenderId: '',
+  appId: '',
+};
+

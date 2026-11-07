@@ -1,0 +1,1300 @@
+{
+  "generatedAt": "2026-11-07T07:29:43.369Z",
+  "sourceDirectory": "/home/user01/Desktop/ClassXbooks",
+  "totalPdfs": 105,
+  "subjects": [
+    {
+      "id": "Science",
+      "name": "Science",
+      "path": "Science",
+      "displayName": "Science",
+      "cover": "covers/ncert/science.jpg",
+      "subfolders": [
+        {
+          "id": "Science/Bio",
+          "name": "Bio",
+          "path": "Science/Bio",
+          "displayName": "Biology",
+          "cover": "covers/ncert/science.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "Science/Bio/05 - Life Processes.pdf",
+              "filename": "05 - Life Processes.pdf",
+              "title": "05 - Life Processes",
+              "path": "books/Science/Bio/05 - Life Processes.pdf",
+              "rawPath": "Science/Bio/05 - Life Processes.pdf",
+              "sizeBytes": 9022079,
+              "thumbnailUrl": "thumbnails/Science/Bio/05 - Life Processes.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Bio/06 - Control and Coordination.pdf",
+              "filename": "06 - Control and Coordination.pdf",
+              "title": "06 - Control and Coordination",
+              "path": "books/Science/Bio/06 - Control and Coordination.pdf",
+              "rawPath": "Science/Bio/06 - Control and Coordination.pdf",
+              "sizeBytes": 2378288,
+              "thumbnailUrl": "thumbnails/Science/Bio/06 - Control and Coordination.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Bio/07 - How do Organisms Reproduce.pdf",
+              "filename": "07 - How do Organisms Reproduce.pdf",
+              "title": "07 - How do Organisms Reproduce",
+              "path": "books/Science/Bio/07 - How do Organisms Reproduce.pdf",
+              "rawPath": "Science/Bio/07 - How do Organisms Reproduce.pdf",
+              "sizeBytes": 4057580,
+              "thumbnailUrl": "thumbnails/Science/Bio/07 - How do Organisms Reproduce.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Bio/08 - Heredity.pdf",
+              "filename": "08 - Heredity.pdf",
+              "title": "08 - Heredity",
+              "path": "books/Science/Bio/08 - Heredity.pdf",
+              "rawPath": "Science/Bio/08 - Heredity.pdf",
+              "sizeBytes": 18120968,
+              "thumbnailUrl": "thumbnails/Science/Bio/08 - Heredity.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Bio/13 - Our Environment.pdf",
+              "filename": "13 - Our Environment.pdf",
+              "title": "13 - Our Environment",
+              "path": "books/Science/Bio/13 - Our Environment.pdf",
+              "rawPath": "Science/Bio/13 - Our Environment.pdf",
+              "sizeBytes": 4194929,
+              "thumbnailUrl": "thumbnails/Science/Bio/13 - Our Environment.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "Science/Chem",
+          "name": "Chem",
+          "path": "Science/Chem",
+          "displayName": "Chemistry",
+          "cover": "covers/ncert/science.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "Science/Chem/01 - Chemical Reactions and Equations.pdf",
+              "filename": "01 - Chemical Reactions and Equations.pdf",
+              "title": "01 - Chemical Reactions and Equations",
+              "path": "books/Science/Chem/01 - Chemical Reactions and Equations.pdf",
+              "rawPath": "Science/Chem/01 - Chemical Reactions and Equations.pdf",
+              "sizeBytes": 4161216,
+              "thumbnailUrl": "thumbnails/Science/Chem/01 - Chemical Reactions and Equations.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Chem/02 - Acids, Bases and Salts.pdf",
+              "filename": "02 - Acids, Bases and Salts.pdf",
+              "title": "02 - Acids, Bases and Salts",
+              "path": "books/Science/Chem/02 - Acids, Bases and Salts.pdf",
+              "rawPath": "Science/Chem/02 - Acids, Bases and Salts.pdf",
+              "sizeBytes": 3958510,
+              "thumbnailUrl": "thumbnails/Science/Chem/02 - Acids, Bases and Salts.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Chem/03 - Metals and Non-metals.pdf",
+              "filename": "03 - Metals and Non-metals.pdf",
+              "title": "03 - Metals and Non-metals",
+              "path": "books/Science/Chem/03 - Metals and Non-metals.pdf",
+              "rawPath": "Science/Chem/03 - Metals and Non-metals.pdf",
+              "sizeBytes": 2891263,
+              "thumbnailUrl": "thumbnails/Science/Chem/03 - Metals and Non-metals.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Chem/04 - Carbon and its Compounds.pdf",
+              "filename": "04 - Carbon and its Compounds.pdf",
+              "title": "04 - Carbon and its Compounds",
+              "path": "books/Science/Chem/04 - Carbon and its Compounds.pdf",
+              "rawPath": "Science/Chem/04 - Carbon and its Compounds.pdf",
+              "sizeBytes": 12420418,
+              "thumbnailUrl": "thumbnails/Science/Chem/04 - Carbon and its Compounds.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "Science/Phy",
+          "name": "Phy",
+          "path": "Science/Phy",
+          "displayName": "Physics",
+          "cover": "covers/ncert/science.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "Science/Phy/09 - Light - Reflection and Refraction.pdf",
+              "filename": "09 - Light - Reflection and Refraction.pdf",
+              "title": "09 - Light - Reflection and Refraction",
+              "path": "books/Science/Phy/09 - Light - Reflection and Refraction.pdf",
+              "rawPath": "Science/Phy/09 - Light - Reflection and Refraction.pdf",
+              "sizeBytes": 2745224,
+              "thumbnailUrl": "thumbnails/Science/Phy/09 - Light - Reflection and Refraction.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Phy/10 - The Human Eye and the Colourful World.pdf",
+              "filename": "10 - The Human Eye and the Colourful World.pdf",
+              "title": "10 - The Human Eye and the Colourful World",
+              "path": "books/Science/Phy/10 - The Human Eye and the Colourful World.pdf",
+              "rawPath": "Science/Phy/10 - The Human Eye and the Colourful World.pdf",
+              "sizeBytes": 1725226,
+              "thumbnailUrl": "thumbnails/Science/Phy/10 - The Human Eye and the Colourful World.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Phy/11 - Electricity.pdf",
+              "filename": "11 - Electricity.pdf",
+              "title": "11 - Electricity",
+              "path": "books/Science/Phy/11 - Electricity.pdf",
+              "rawPath": "Science/Phy/11 - Electricity.pdf",
+              "sizeBytes": 2595813,
+              "thumbnailUrl": "thumbnails/Science/Phy/11 - Electricity.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Science/Phy/12 - Magnetic Effects of Electric Current.pdf",
+              "filename": "12 - Magnetic Effects of Electric Current.pdf",
+              "title": "12 - Magnetic Effects of Electric Current",
+              "path": "books/Science/Phy/12 - Magnetic Effects of Electric Current.pdf",
+              "rawPath": "Science/Phy/12 - Magnetic Effects of Electric Current.pdf",
+              "sizeBytes": 2215684,
+              "thumbnailUrl": "thumbnails/Science/Phy/12 - Magnetic Effects of Electric Current.png",
+              "isEconomicsException": false
+            }
+          ]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "Maths",
+      "name": "Maths",
+      "path": "Maths",
+      "displayName": "Maths",
+      "cover": "covers/ncert/mathematics.jpg",
+      "subfolders": [],
+      "files": [
+        {
+          "id": "Maths/01.pdf",
+          "filename": "01.pdf",
+          "title": "01 - Real Numbers",
+          "path": "books/Maths/01.pdf",
+          "rawPath": "Maths/01.pdf",
+          "sizeBytes": 1534149,
+          "thumbnailUrl": "thumbnails/Maths/01.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/02.pdf",
+          "filename": "02.pdf",
+          "title": "02 - Polynomials",
+          "path": "books/Maths/02.pdf",
+          "rawPath": "Maths/02.pdf",
+          "sizeBytes": 1686285,
+          "thumbnailUrl": "thumbnails/Maths/02.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/03.pdf",
+          "filename": "03.pdf",
+          "title": "03 - Pair of Linear Equations in Two Variables",
+          "path": "books/Maths/03.pdf",
+          "rawPath": "Maths/03.pdf",
+          "sizeBytes": 2084232,
+          "thumbnailUrl": "thumbnails/Maths/03.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/04.pdf",
+          "filename": "04.pdf",
+          "title": "04 - Quadratic Equations",
+          "path": "books/Maths/04.pdf",
+          "rawPath": "Maths/04.pdf",
+          "sizeBytes": 1499207,
+          "thumbnailUrl": "thumbnails/Maths/04.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/05.pdf",
+          "filename": "05.pdf",
+          "title": "05 - Arithmetic Progressions",
+          "path": "books/Maths/05.pdf",
+          "rawPath": "Maths/05.pdf",
+          "sizeBytes": 2357823,
+          "thumbnailUrl": "thumbnails/Maths/05.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/06.pdf",
+          "filename": "06.pdf",
+          "title": "06 - Triangles",
+          "path": "books/Maths/06.pdf",
+          "rawPath": "Maths/06.pdf",
+          "sizeBytes": 2799087,
+          "thumbnailUrl": "thumbnails/Maths/06.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/07.pdf",
+          "filename": "07.pdf",
+          "title": "07 - Coordinate Geometry",
+          "path": "books/Maths/07.pdf",
+          "rawPath": "Maths/07.pdf",
+          "sizeBytes": 2152902,
+          "thumbnailUrl": "thumbnails/Maths/07.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/08.pdf",
+          "filename": "08.pdf",
+          "title": "08 - Introduction to Trigonometry",
+          "path": "books/Maths/08.pdf",
+          "rawPath": "Maths/08.pdf",
+          "sizeBytes": 2230227,
+          "thumbnailUrl": "thumbnails/Maths/08.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/09.pdf",
+          "filename": "09.pdf",
+          "title": "09 - Some Applications of Trigonometry",
+          "path": "books/Maths/09.pdf",
+          "rawPath": "Maths/09.pdf",
+          "sizeBytes": 1838085,
+          "thumbnailUrl": "thumbnails/Maths/09.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/10.pdf",
+          "filename": "10.pdf",
+          "title": "10 - Circles",
+          "path": "books/Maths/10.pdf",
+          "rawPath": "Maths/10.pdf",
+          "sizeBytes": 1366412,
+          "thumbnailUrl": "thumbnails/Maths/10.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/11.pdf",
+          "filename": "11.pdf",
+          "title": "11 - Areas Related to Circles",
+          "path": "books/Maths/11.pdf",
+          "rawPath": "Maths/11.pdf",
+          "sizeBytes": 1310079,
+          "thumbnailUrl": "thumbnails/Maths/11.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/12.pdf",
+          "filename": "12.pdf",
+          "title": "12 - Surface Areas and Volumes",
+          "path": "books/Maths/12.pdf",
+          "rawPath": "Maths/12.pdf",
+          "sizeBytes": 1620005,
+          "thumbnailUrl": "thumbnails/Maths/12.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/13.pdf",
+          "filename": "13.pdf",
+          "title": "13 - Statistics",
+          "path": "books/Maths/13.pdf",
+          "rawPath": "Maths/13.pdf",
+          "sizeBytes": 2803743,
+          "thumbnailUrl": "thumbnails/Maths/13.png",
+          "isEconomicsException": false
+        },
+        {
+          "id": "Maths/14.pdf",
+          "filename": "14.pdf",
+          "title": "14 - Probability",
+          "path": "books/Maths/14.pdf",
+          "rawPath": "Maths/14.pdf",
+          "sizeBytes": 1847788,
+          "thumbnailUrl": "thumbnails/Maths/14.png",
+          "isEconomicsException": false
+        }
+      ]
+    },
+    {
+      "id": "SST",
+      "name": "SST",
+      "path": "SST",
+      "displayName": "Social Science",
+      "cover": "covers/ncert/social-science.png",
+      "subfolders": [
+        {
+          "id": "SST/Civics",
+          "name": "Civics",
+          "path": "SST/Civics",
+          "displayName": "Civics",
+          "cover": "covers/ncert/civics.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "SST/Civics/01 - Power-sharing.pdf",
+              "filename": "01 - Power-sharing.pdf",
+              "title": "01 - Power-sharing",
+              "path": "books/SST/Civics/01 - Power-sharing.pdf",
+              "rawPath": "SST/Civics/01 - Power-sharing.pdf",
+              "sizeBytes": 1865598,
+              "thumbnailUrl": "thumbnails/SST/Civics/01 - Power-sharing.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Civics/02 - Federalism.pdf",
+              "filename": "02 - Federalism.pdf",
+              "title": "02 - Federalism",
+              "path": "books/SST/Civics/02 - Federalism.pdf",
+              "rawPath": "SST/Civics/02 - Federalism.pdf",
+              "sizeBytes": 2696611,
+              "thumbnailUrl": "thumbnails/SST/Civics/02 - Federalism.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Civics/03 - Gender, Religion and Caste.pdf",
+              "filename": "03 - Gender, Religion and Caste.pdf",
+              "title": "03 - Gender, Religion and Caste",
+              "path": "books/SST/Civics/03 - Gender, Religion and Caste.pdf",
+              "rawPath": "SST/Civics/03 - Gender, Religion and Caste.pdf",
+              "sizeBytes": 2358657,
+              "thumbnailUrl": "thumbnails/SST/Civics/03 - Gender, Religion and Caste.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Civics/04 - Political Parties.pdf",
+              "filename": "04 - Political Parties.pdf",
+              "title": "04 - Political Parties",
+              "path": "books/SST/Civics/04 - Political Parties.pdf",
+              "rawPath": "SST/Civics/04 - Political Parties.pdf",
+              "sizeBytes": 3555972,
+              "thumbnailUrl": "thumbnails/SST/Civics/04 - Political Parties.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Civics/05 - Outcomes of Democracy.pdf",
+              "filename": "05 - Outcomes of Democracy.pdf",
+              "title": "05 - Outcomes of Democracy",
+              "path": "books/SST/Civics/05 - Outcomes of Democracy.pdf",
+              "rawPath": "SST/Civics/05 - Outcomes of Democracy.pdf",
+              "sizeBytes": 2164380,
+              "thumbnailUrl": "thumbnails/SST/Civics/05 - Outcomes of Democracy.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "SST/Eco",
+          "name": "Eco",
+          "path": "SST/Eco",
+          "displayName": "Economics",
+          "cover": "covers/ncert/economics.png",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "SST/Eco/01 - Development.pdf",
+              "filename": "01 - Development.pdf",
+              "title": "01 - Development",
+              "path": "books/SST/Eco/01 - Development.pdf",
+              "rawPath": "SST/Eco/01 - Development.pdf",
+              "sizeBytes": 2484758,
+              "thumbnailUrl": "thumbnails/SST/Eco/01 - Development.png",
+              "isEconomicsException": true
+            },
+            {
+              "id": "SST/Eco/02 - Sectors of the Indian Economy.pdf",
+              "filename": "02 - Sectors of the Indian Economy.pdf",
+              "title": "02 - Sectors of the Indian Economy",
+              "path": "books/SST/Eco/02 - Sectors of the Indian Economy.pdf",
+              "rawPath": "SST/Eco/02 - Sectors of the Indian Economy.pdf",
+              "sizeBytes": 2697302,
+              "thumbnailUrl": "thumbnails/SST/Eco/02 - Sectors of the Indian Economy.png",
+              "isEconomicsException": true
+            },
+            {
+              "id": "SST/Eco/03 - Money and Credit.pdf",
+              "filename": "03 - Money and Credit.pdf",
+              "title": "03 - Money and Credit",
+              "path": "books/SST/Eco/03 - Money and Credit.pdf",
+              "rawPath": "SST/Eco/03 - Money and Credit.pdf",
+              "sizeBytes": 3375236,
+              "thumbnailUrl": "thumbnails/SST/Eco/03 - Money and Credit.png",
+              "isEconomicsException": true
+            },
+            {
+              "id": "SST/Eco/04 - Globalisation and the Indian Economy.pdf",
+              "filename": "04 - Globalisation and the Indian Economy.pdf",
+              "title": "04 - Globalisation and the Indian Economy",
+              "path": "books/SST/Eco/04 - Globalisation and the Indian Economy.pdf",
+              "rawPath": "SST/Eco/04 - Globalisation and the Indian Economy.pdf",
+              "sizeBytes": 2706376,
+              "thumbnailUrl": "thumbnails/SST/Eco/04 - Globalisation and the Indian Economy.png",
+              "isEconomicsException": true
+            }
+          ]
+        },
+        {
+          "id": "SST/Geo",
+          "name": "Geo",
+          "path": "SST/Geo",
+          "displayName": "Geography",
+          "cover": "covers/ncert/geography.png",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "SST/Geo/01 - Resources and Development.pdf",
+              "filename": "01 - Resources and Development.pdf",
+              "title": "01 - Resources and Development",
+              "path": "books/SST/Geo/01 - Resources and Development.pdf",
+              "rawPath": "SST/Geo/01 - Resources and Development.pdf",
+              "sizeBytes": 1799171,
+              "thumbnailUrl": "thumbnails/SST/Geo/01 - Resources and Development.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/02 - Forest and Wildlife Resources.pdf",
+              "filename": "02 - Forest and Wildlife Resources.pdf",
+              "title": "02 - Forest and Wildlife Resources",
+              "path": "books/SST/Geo/02 - Forest and Wildlife Resources.pdf",
+              "rawPath": "SST/Geo/02 - Forest and Wildlife Resources.pdf",
+              "sizeBytes": 1586082,
+              "thumbnailUrl": "thumbnails/SST/Geo/02 - Forest and Wildlife Resources.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/03 - Water Resources.pdf",
+              "filename": "03 - Water Resources.pdf",
+              "title": "03 - Water Resources",
+              "path": "books/SST/Geo/03 - Water Resources.pdf",
+              "rawPath": "SST/Geo/03 - Water Resources.pdf",
+              "sizeBytes": 1984576,
+              "thumbnailUrl": "thumbnails/SST/Geo/03 - Water Resources.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/04 - Agriculture.pdf",
+              "filename": "04 - Agriculture.pdf",
+              "title": "04 - Agriculture",
+              "path": "books/SST/Geo/04 - Agriculture.pdf",
+              "rawPath": "SST/Geo/04 - Agriculture.pdf",
+              "sizeBytes": 2251016,
+              "thumbnailUrl": "thumbnails/SST/Geo/04 - Agriculture.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/05 - Minerals and Energy Resources.pdf",
+              "filename": "05 - Minerals and Energy Resources.pdf",
+              "title": "05 - Minerals and Energy Resources",
+              "path": "books/SST/Geo/05 - Minerals and Energy Resources.pdf",
+              "rawPath": "SST/Geo/05 - Minerals and Energy Resources.pdf",
+              "sizeBytes": 2698946,
+              "thumbnailUrl": "thumbnails/SST/Geo/05 - Minerals and Energy Resources.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/06 - Manufacturing Industries.pdf",
+              "filename": "06 - Manufacturing Industries.pdf",
+              "title": "06 - Manufacturing Industries",
+              "path": "books/SST/Geo/06 - Manufacturing Industries.pdf",
+              "rawPath": "SST/Geo/06 - Manufacturing Industries.pdf",
+              "sizeBytes": 1643551,
+              "thumbnailUrl": "thumbnails/SST/Geo/06 - Manufacturing Industries.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/Geo/07 - Lifelines of National Economy.pdf",
+              "filename": "07 - Lifelines of National Economy.pdf",
+              "title": "07 - Lifelines of National Economy",
+              "path": "books/SST/Geo/07 - Lifelines of National Economy.pdf",
+              "rawPath": "SST/Geo/07 - Lifelines of National Economy.pdf",
+              "sizeBytes": 2201818,
+              "thumbnailUrl": "thumbnails/SST/Geo/07 - Lifelines of National Economy.png",
+              "isEconomicsException": true
+            }
+          ]
+        },
+        {
+          "id": "SST/History",
+          "name": "History",
+          "path": "SST/History",
+          "displayName": "History",
+          "cover": "covers/ncert/history.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "SST/History/01 - The Rise of Nationalism in Europe.pdf",
+              "filename": "01 - The Rise of Nationalism in Europe.pdf",
+              "title": "01 - The Rise of Nationalism in Europe",
+              "path": "books/SST/History/01 - The Rise of Nationalism in Europe.pdf",
+              "rawPath": "SST/History/01 - The Rise of Nationalism in Europe.pdf",
+              "sizeBytes": 5649051,
+              "thumbnailUrl": "thumbnails/SST/History/01 - The Rise of Nationalism in Europe.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/History/02 - Nationalism in India.pdf",
+              "filename": "02 - Nationalism in India.pdf",
+              "title": "02 - Nationalism in India",
+              "path": "books/SST/History/02 - Nationalism in India.pdf",
+              "rawPath": "SST/History/02 - Nationalism in India.pdf",
+              "sizeBytes": 5057222,
+              "thumbnailUrl": "thumbnails/SST/History/02 - Nationalism in India.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/History/03 - The Making of a Global World.pdf",
+              "filename": "03 - The Making of a Global World.pdf",
+              "title": "03 - The Making of a Global World",
+              "path": "books/SST/History/03 - The Making of a Global World.pdf",
+              "rawPath": "SST/History/03 - The Making of a Global World.pdf",
+              "sizeBytes": 2027470,
+              "thumbnailUrl": "thumbnails/SST/History/03 - The Making of a Global World.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "SST/History/05 - Print Culture and the Modern World.pdf",
+              "filename": "05 - Print Culture and the Modern World.pdf",
+              "title": "05 - Print Culture and the Modern World",
+              "path": "books/SST/History/05 - Print Culture and the Modern World.pdf",
+              "rawPath": "SST/History/05 - Print Culture and the Modern World.pdf",
+              "sizeBytes": 5466596,
+              "thumbnailUrl": "thumbnails/SST/History/05 - Print Culture and the Modern World.png",
+              "isEconomicsException": false
+            }
+          ]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "English Language and Literature",
+      "name": "English Language and Literature",
+      "path": "English Language and Literature",
+      "displayName": "English",
+      "cover": "covers/ncert/english-combined.png",
+      "subfolders": [
+        {
+          "id": "English Language and Literature/First Flight",
+          "name": "First Flight",
+          "path": "English Language and Literature/First Flight",
+          "displayName": "First Flight",
+          "cover": "covers/ncert/first-flight.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "English Language and Literature/First Flight/01 - A Letter to God.pdf",
+              "filename": "01 - A Letter to God.pdf",
+              "title": "01 - A Letter to God",
+              "path": "books/English Language and Literature/First Flight/01 - A Letter to God.pdf",
+              "rawPath": "English Language and Literature/First Flight/01 - A Letter to God.pdf",
+              "sizeBytes": 2134196,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/01 - A Letter to God.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/02 - Nelson Mandela Long Walk to Freedom.pdf",
+              "filename": "02 - Nelson Mandela Long Walk to Freedom.pdf",
+              "title": "02 - Nelson Mandela Long Walk to Freedom",
+              "path": "books/English Language and Literature/First Flight/02 - Nelson Mandela Long Walk to Freedom.pdf",
+              "rawPath": "English Language and Literature/First Flight/02 - Nelson Mandela Long Walk to Freedom.pdf",
+              "sizeBytes": 2177329,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/02 - Nelson Mandela Long Walk to Freedom.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/03 - Two Stories about Flying.pdf",
+              "filename": "03 - Two Stories about Flying.pdf",
+              "title": "03 - Two Stories about Flying",
+              "path": "books/English Language and Literature/First Flight/03 - Two Stories about Flying.pdf",
+              "rawPath": "English Language and Literature/First Flight/03 - Two Stories about Flying.pdf",
+              "sizeBytes": 2324820,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/03 - Two Stories about Flying.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/04 - From the Diary of Anne Frank.pdf",
+              "filename": "04 - From the Diary of Anne Frank.pdf",
+              "title": "04 - From the Diary of Anne Frank",
+              "path": "books/English Language and Literature/First Flight/04 - From the Diary of Anne Frank.pdf",
+              "rawPath": "English Language and Literature/First Flight/04 - From the Diary of Anne Frank.pdf",
+              "sizeBytes": 1954669,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/04 - From the Diary of Anne Frank.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/05 - Glimpses of India.pdf",
+              "filename": "05 - Glimpses of India.pdf",
+              "title": "05 - Glimpses of India",
+              "path": "books/English Language and Literature/First Flight/05 - Glimpses of India.pdf",
+              "rawPath": "English Language and Literature/First Flight/05 - Glimpses of India.pdf",
+              "sizeBytes": 2114261,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/05 - Glimpses of India.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/06 - Mijbil the Otter.pdf",
+              "filename": "06 - Mijbil the Otter.pdf",
+              "title": "06 - Mijbil the Otter",
+              "path": "books/English Language and Literature/First Flight/06 - Mijbil the Otter.pdf",
+              "rawPath": "English Language and Literature/First Flight/06 - Mijbil the Otter.pdf",
+              "sizeBytes": 1944893,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/06 - Mijbil the Otter.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/07 - Madam Rides the Bus.pdf",
+              "filename": "07 - Madam Rides the Bus.pdf",
+              "title": "07 - Madam Rides the Bus",
+              "path": "books/English Language and Literature/First Flight/07 - Madam Rides the Bus.pdf",
+              "rawPath": "English Language and Literature/First Flight/07 - Madam Rides the Bus.pdf",
+              "sizeBytes": 2406051,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/07 - Madam Rides the Bus.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/08 - The Sermon at Benares.pdf",
+              "filename": "08 - The Sermon at Benares.pdf",
+              "title": "08 - The Sermon at Benares",
+              "path": "books/English Language and Literature/First Flight/08 - The Sermon at Benares.pdf",
+              "rawPath": "English Language and Literature/First Flight/08 - The Sermon at Benares.pdf",
+              "sizeBytes": 1546451,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/08 - The Sermon at Benares.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/First Flight/09 - The Proposal.pdf",
+              "filename": "09 - The Proposal.pdf",
+              "title": "09 - The Proposal",
+              "path": "books/English Language and Literature/First Flight/09 - The Proposal.pdf",
+              "rawPath": "English Language and Literature/First Flight/09 - The Proposal.pdf",
+              "sizeBytes": 2434690,
+              "thumbnailUrl": "thumbnails/English Language and Literature/First Flight/09 - The Proposal.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "English Language and Literature/Footprints Without Feet",
+          "name": "Footprints Without Feet",
+          "path": "English Language and Literature/Footprints Without Feet",
+          "displayName": "Footprints Without Feet",
+          "cover": "covers/ncert/footprints.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "English Language and Literature/Footprints Without Feet/01 - A Triumph of Surgery.pdf",
+              "filename": "01 - A Triumph of Surgery.pdf",
+              "title": "01 - A Triumph of Surgery",
+              "path": "books/English Language and Literature/Footprints Without Feet/01 - A Triumph of Surgery.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/01 - A Triumph of Surgery.pdf",
+              "sizeBytes": 2652517,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/01 - A Triumph of Surgery.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/02 - The Thief’s Story.pdf",
+              "filename": "02 - The Thief’s Story.pdf",
+              "title": "02 - The Thief’s Story",
+              "path": "books/English Language and Literature/Footprints Without Feet/02 - The Thief’s Story.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/02 - The Thief’s Story.pdf",
+              "sizeBytes": 2284460,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/02 - The Thief’s Story.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/03 - The Midnight Visitor.pdf",
+              "filename": "03 - The Midnight Visitor.pdf",
+              "title": "03 - The Midnight Visitor",
+              "path": "books/English Language and Literature/Footprints Without Feet/03 - The Midnight Visitor.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/03 - The Midnight Visitor.pdf",
+              "sizeBytes": 2490292,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/03 - The Midnight Visitor.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/04 - A Question of Trust.pdf",
+              "filename": "04 - A Question of Trust.pdf",
+              "title": "04 - A Question of Trust",
+              "path": "books/English Language and Literature/Footprints Without Feet/04 - A Question of Trust.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/04 - A Question of Trust.pdf",
+              "sizeBytes": 2287341,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/04 - A Question of Trust.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/05 - Footprints Without Feet.pdf",
+              "filename": "05 - Footprints Without Feet.pdf",
+              "title": "05 - Footprints Without Feet",
+              "path": "books/English Language and Literature/Footprints Without Feet/05 - Footprints Without Feet.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/05 - Footprints Without Feet.pdf",
+              "sizeBytes": 2359246,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/05 - Footprints Without Feet.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/06 - The Making of a Scientist.pdf",
+              "filename": "06 - The Making of a Scientist.pdf",
+              "title": "06 - The Making of a Scientist",
+              "path": "books/English Language and Literature/Footprints Without Feet/06 - The Making of a Scientist.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/06 - The Making of a Scientist.pdf",
+              "sizeBytes": 2419429,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/06 - The Making of a Scientist.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/07 - The Necklace.pdf",
+              "filename": "07 - The Necklace.pdf",
+              "title": "07 - The Necklace",
+              "path": "books/English Language and Literature/Footprints Without Feet/07 - The Necklace.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/07 - The Necklace.pdf",
+              "sizeBytes": 2758349,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/07 - The Necklace.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/08 - Bholi.pdf",
+              "filename": "08 - Bholi.pdf",
+              "title": "08 - Bholi",
+              "path": "books/English Language and Literature/Footprints Without Feet/08 - Bholi.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/08 - Bholi.pdf",
+              "sizeBytes": 2878483,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/08 - Bholi.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "English Language and Literature/Footprints Without Feet/09 - The Book That Saved the Earth.pdf",
+              "filename": "09 - The Book That Saved the Earth.pdf",
+              "title": "09 - The Book That Saved the Earth",
+              "path": "books/English Language and Literature/Footprints Without Feet/09 - The Book That Saved the Earth.pdf",
+              "rawPath": "English Language and Literature/Footprints Without Feet/09 - The Book That Saved the Earth.pdf",
+              "sizeBytes": 4077029,
+              "thumbnailUrl": "thumbnails/English Language and Literature/Footprints Without Feet/09 - The Book That Saved the Earth.png",
+              "isEconomicsException": false
+            }
+          ]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "Hindi",
+      "name": "Hindi",
+      "path": "Hindi",
+      "displayName": "Hindi",
+      "cover": "covers/ncert/hindi-combined.png",
+      "subfolders": [
+        {
+          "id": "Hindi/Sanchayan",
+          "name": "Sanchayan",
+          "path": "Hindi/Sanchayan",
+          "displayName": "Sanchayan",
+          "cover": "covers/ncert/sanchayan.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "Hindi/Sanchayan/01 - Harihar Kaka.pdf",
+              "filename": "01 - Harihar Kaka.pdf",
+              "title": "01 - Harihar Kaka",
+              "path": "books/Hindi/Sanchayan/01 - Harihar Kaka.pdf",
+              "rawPath": "Hindi/Sanchayan/01 - Harihar Kaka.pdf",
+              "sizeBytes": 2254812,
+              "thumbnailUrl": "thumbnails/Hindi/Sanchayan/01 - Harihar Kaka.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sanchayan/02 - Sapnon ke-se Din.pdf",
+              "filename": "02 - Sapnon ke-se Din.pdf",
+              "title": "02 - Sapnon ke-se Din",
+              "path": "books/Hindi/Sanchayan/02 - Sapnon ke-se Din.pdf",
+              "rawPath": "Hindi/Sanchayan/02 - Sapnon ke-se Din.pdf",
+              "sizeBytes": 1920384,
+              "thumbnailUrl": "thumbnails/Hindi/Sanchayan/02 - Sapnon ke-se Din.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sanchayan/03 - Topi Shukla.pdf",
+              "filename": "03 - Topi Shukla.pdf",
+              "title": "03 - Topi Shukla",
+              "path": "books/Hindi/Sanchayan/03 - Topi Shukla.pdf",
+              "rawPath": "Hindi/Sanchayan/03 - Topi Shukla.pdf",
+              "sizeBytes": 1813507,
+              "thumbnailUrl": "thumbnails/Hindi/Sanchayan/03 - Topi Shukla.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "Hindi/Sparsh",
+          "name": "Sparsh",
+          "path": "Hindi/Sparsh",
+          "displayName": "Sparsh",
+          "cover": "covers/ncert/sparsh.jpg",
+          "subfolders": [],
+          "files": [
+            {
+              "id": "Hindi/Sparsh/01.pdf",
+              "filename": "01.pdf",
+              "title": "01 - साखी (कबीर)",
+              "path": "books/Hindi/Sparsh/01.pdf",
+              "rawPath": "Hindi/Sparsh/01.pdf",
+              "sizeBytes": 1354948,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/01.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/02.pdf",
+              "filename": "02.pdf",
+              "title": "02 - पद (मीरा)",
+              "path": "books/Hindi/Sparsh/02.pdf",
+              "rawPath": "Hindi/Sparsh/02.pdf",
+              "sizeBytes": 1123727,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/02.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/03.pdf",
+              "filename": "03.pdf",
+              "title": "03 - मनुष्यता (मैथिलीशरण गुप्त)",
+              "path": "books/Hindi/Sparsh/03.pdf",
+              "rawPath": "Hindi/Sparsh/03.pdf",
+              "sizeBytes": 1212060,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/03.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/04.pdf",
+              "filename": "04.pdf",
+              "title": "04 - पर्वत प्रदेश में पावस (सुमित्रानंदन पंत)",
+              "path": "books/Hindi/Sparsh/04.pdf",
+              "rawPath": "Hindi/Sparsh/04.pdf",
+              "sizeBytes": 1159929,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/04.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/05.pdf",
+              "filename": "05.pdf",
+              "title": "05 - तोप (वीरेन डंगवाल)",
+              "path": "books/Hindi/Sparsh/05.pdf",
+              "rawPath": "Hindi/Sparsh/05.pdf",
+              "sizeBytes": 1036148,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/05.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/06.pdf",
+              "filename": "06.pdf",
+              "title": "06 - कर चले हम फ़िदा (कैफ़ी आज़मी)",
+              "path": "books/Hindi/Sparsh/06.pdf",
+              "rawPath": "Hindi/Sparsh/06.pdf",
+              "sizeBytes": 1087751,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/06.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/07.pdf",
+              "filename": "07.pdf",
+              "title": "07 - आत्मत्राण (रवींद्रनाथ ठाकुर)",
+              "path": "books/Hindi/Sparsh/07.pdf",
+              "rawPath": "Hindi/Sparsh/07.pdf",
+              "sizeBytes": 1277690,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/07.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/08.pdf",
+              "filename": "08.pdf",
+              "title": "08 - बड़े भाई साहब (प्रेमचंद)",
+              "path": "books/Hindi/Sparsh/08.pdf",
+              "rawPath": "Hindi/Sparsh/08.pdf",
+              "sizeBytes": 2088386,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/08.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/09.pdf",
+              "filename": "09.pdf",
+              "title": "09 - डायरी का एक पन्ना (सीताराम सेकसरिया)",
+              "path": "books/Hindi/Sparsh/09.pdf",
+              "rawPath": "Hindi/Sparsh/09.pdf",
+              "sizeBytes": 1394757,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/09.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/10.pdf",
+              "filename": "10.pdf",
+              "title": "10 - ततांरा-वामीरो कथा (लीलाधर मंडलोई)",
+              "path": "books/Hindi/Sparsh/10.pdf",
+              "rawPath": "Hindi/Sparsh/10.pdf",
+              "sizeBytes": 1492464,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/10.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/11.pdf",
+              "filename": "11.pdf",
+              "title": "11 - तीसरी कसम के शिल्पकार शैलेंद्र (प्रहलाद अग्रवाल)",
+              "path": "books/Hindi/Sparsh/11.pdf",
+              "rawPath": "Hindi/Sparsh/11.pdf",
+              "sizeBytes": 1375055,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/11.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/12.pdf",
+              "filename": "12.pdf",
+              "title": "12 - अब कहाँ दूसरे के दुख से दुखी होने वाले (निदा फ़ाज़ली)",
+              "path": "books/Hindi/Sparsh/12.pdf",
+              "rawPath": "Hindi/Sparsh/12.pdf",
+              "sizeBytes": 1355776,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/12.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/13.pdf",
+              "filename": "13.pdf",
+              "title": "13 - पतझर में टूटी पत्तियाँ - झेन की देन (रवींद्र केलेकर)",
+              "path": "books/Hindi/Sparsh/13.pdf",
+              "rawPath": "Hindi/Sparsh/13.pdf",
+              "sizeBytes": 1466922,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/13.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "Hindi/Sparsh/14.pdf",
+              "filename": "14.pdf",
+              "title": "14 - कारतूस (हबीब तनवीर)",
+              "path": "books/Hindi/Sparsh/14.pdf",
+              "rawPath": "Hindi/Sparsh/14.pdf",
+              "sizeBytes": 1503932,
+              "thumbnailUrl": "thumbnails/Hindi/Sparsh/14.png",
+              "isEconomicsException": false
+            }
+          ]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "IT",
+      "name": "IT",
+      "path": "IT",
+      "displayName": "IT",
+      "cover": "covers/ncert/it-class-x.png",
+      "subfolders": [
+        {
+          "id": "IT/Part A",
+          "name": "Part A",
+          "path": "IT/Part A",
+          "displayName": "Part A",
+          "cover": "covers/it_domestic_cover-001.png",
+          "subfolders": [
+            {
+              "id": "IT/Part A/Base (Database)",
+              "name": "Base (Database)",
+              "path": "IT/Part A/Base (Database)",
+              "displayName": "Database (Base)",
+              "cover": "covers/it_domestic_cover-001.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Base (Database)/08 - Introduction to Database Management System.pdf",
+                  "filename": "08 - Introduction to Database Management System.pdf",
+                  "title": "08 - Introduction to Database Management System",
+                  "path": "books/IT/Part A/Base (Database)/08 - Introduction to Database Management System.pdf",
+                  "rawPath": "IT/Part A/Base (Database)/08 - Introduction to Database Management System.pdf",
+                  "sizeBytes": 2806740,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Base (Database)/08 - Introduction to Database Management System.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Base (Database)/09 - Starting with LibreOffice Base.pdf",
+                  "filename": "09 - Starting with LibreOffice Base.pdf",
+                  "title": "09 - Starting with LibreOffice Base",
+                  "path": "books/IT/Part A/Base (Database)/09 - Starting with LibreOffice Base.pdf",
+                  "rawPath": "IT/Part A/Base (Database)/09 - Starting with LibreOffice Base.pdf",
+                  "sizeBytes": 4024649,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Base (Database)/09 - Starting with LibreOffice Base.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Base (Database)/10 - Working with Multiple Tables.pdf",
+                  "filename": "10 - Working with Multiple Tables.pdf",
+                  "title": "10 - Working with Multiple Tables",
+                  "path": "books/IT/Part A/Base (Database)/10 - Working with Multiple Tables.pdf",
+                  "rawPath": "IT/Part A/Base (Database)/10 - Working with Multiple Tables.pdf",
+                  "sizeBytes": 3167421,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Base (Database)/10 - Working with Multiple Tables.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Base (Database)/11 - Queries in Base.pdf",
+                  "filename": "11 - Queries in Base.pdf",
+                  "title": "11 - Queries in Base",
+                  "path": "books/IT/Part A/Base (Database)/11 - Queries in Base.pdf",
+                  "rawPath": "IT/Part A/Base (Database)/11 - Queries in Base.pdf",
+                  "sizeBytes": 3130502,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Base (Database)/11 - Queries in Base.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Base (Database)/12 - Forms and Reports.pdf",
+                  "filename": "12 - Forms and Reports.pdf",
+                  "title": "12 - Forms and Reports",
+                  "path": "books/IT/Part A/Base (Database)/12 - Forms and Reports.pdf",
+                  "rawPath": "IT/Part A/Base (Database)/12 - Forms and Reports.pdf",
+                  "sizeBytes": 6066714,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Base (Database)/12 - Forms and Reports.png",
+                  "isEconomicsException": false
+                }
+              ]
+            },
+            {
+              "id": "IT/Part A/Calc",
+              "name": "Calc",
+              "path": "IT/Part A/Calc",
+              "displayName": "Spreadsheet (Calc)",
+              "cover": "covers/it_domestic_cover-001.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "filename": "04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "title": "04 - Analyse Data using Scenarios and Goal Seek",
+                  "path": "books/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "rawPath": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "sizeBytes": 4310647,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "filename": "05 - Using Macros in Spreadsheet.pdf",
+                  "title": "05 - Using Macros in Spreadsheet",
+                  "path": "books/IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "rawPath": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "sizeBytes": 3048025,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/05 - Using Macros in Spreadsheet.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "filename": "06 - Linking Spreadsheet Data.pdf",
+                  "title": "06 - Linking Spreadsheet Data",
+                  "path": "books/IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "rawPath": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "sizeBytes": 3362825,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/06 - Linking Spreadsheet Data.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "filename": "07 - Share and Review a Spreadsheet.pdf",
+                  "title": "07 - Share and Review a Spreadsheet",
+                  "path": "books/IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "rawPath": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "sizeBytes": 2950044,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/07 - Share and Review a Spreadsheet.png",
+                  "isEconomicsException": false
+                }
+              ]
+            },
+            {
+              "id": "IT/Part A/Workplace Safety",
+              "name": "Workplace Safety",
+              "path": "IT/Part A/Workplace Safety",
+              "displayName": "Workplace Safety",
+              "cover": "covers/it_domestic_cover-001.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Workplace Safety/13 - Health Safety and Security at Workplace.pdf",
+                  "filename": "13 - Health Safety and Security at Workplace.pdf",
+                  "title": "13 - Health Safety and Security at Workplace",
+                  "path": "books/IT/Part A/Workplace Safety/13 - Health Safety and Security at Workplace.pdf",
+                  "rawPath": "IT/Part A/Workplace Safety/13 - Health Safety and Security at Workplace.pdf",
+                  "sizeBytes": 2605085,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Workplace Safety/13 - Health Safety and Security at Workplace.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Workplace Safety/14 - Workplace Quality Measures.pdf",
+                  "filename": "14 - Workplace Quality Measures.pdf",
+                  "title": "14 - Workplace Quality Measures",
+                  "path": "books/IT/Part A/Workplace Safety/14 - Workplace Quality Measures.pdf",
+                  "rawPath": "IT/Part A/Workplace Safety/14 - Workplace Quality Measures.pdf",
+                  "sizeBytes": 2581679,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Workplace Safety/14 - Workplace Quality Measures.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Workplace Safety/15 - Prevent Accidents and Emergencies.pdf",
+                  "filename": "15 - Prevent Accidents and Emergencies.pdf",
+                  "title": "15 - Prevent Accidents and Emergencies",
+                  "path": "books/IT/Part A/Workplace Safety/15 - Prevent Accidents and Emergencies.pdf",
+                  "rawPath": "IT/Part A/Workplace Safety/15 - Prevent Accidents and Emergencies.pdf",
+                  "sizeBytes": 2938169,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Workplace Safety/15 - Prevent Accidents and Emergencies.png",
+                  "isEconomicsException": false
+                }
+              ]
+            },
+            {
+              "id": "IT/Part A/Writer",
+              "name": "Writer",
+              "path": "IT/Part A/Writer",
+              "displayName": "Documentation (Writer)",
+              "cover": "covers/it_domestic_cover-001.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "filename": "01 - Introduction to Styles.pdf",
+                  "title": "01 - Introduction to Styles",
+                  "path": "books/IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "rawPath": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "sizeBytes": 4338490,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/01 - Introduction to Styles.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Writer/02 - Working with Images.pdf",
+                  "filename": "02 - Working with Images.pdf",
+                  "title": "02 - Working with Images",
+                  "path": "books/IT/Part A/Writer/02 - Working with Images.pdf",
+                  "rawPath": "IT/Part A/Writer/02 - Working with Images.pdf",
+                  "sizeBytes": 5528871,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/02 - Working with Images.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "filename": "03 - Advanced Features of Writer.pdf",
+                  "title": "03 - Advanced Features of Writer",
+                  "path": "books/IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "rawPath": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "sizeBytes": 8274501,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/03 - Advanced Features of Writer.png",
+                  "isEconomicsException": false
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "id": "IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
+              "filename": "Domestic Data Entry Operator - Full Book.pdf",
+              "title": "Domestic Data Entry Operator - Full Book",
+              "path": "books/IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
+              "rawPath": "IT/Part A/Domestic Data Entry Operator - Full Book.pdf",
+              "sizeBytes": 8784095,
+              "thumbnailUrl": "thumbnails/IT/Part A/Domestic Data Entry Operator - Full Book.png",
+              "isEconomicsException": false
+            }
+          ]
+        },
+        {
+          "id": "IT/Part B",
+          "name": "Part B",
+          "path": "IT/Part B",
+          "displayName": "Part B",
+          "cover": "covers/it_employability_cover-001.png",
+          "subfolders": [
+            {
+              "id": "IT/Part B/Chapters",
+              "name": "Chapters",
+              "path": "IT/Part B/Chapters",
+              "displayName": "Vocational Chapters",
+              "cover": "covers/it_employability_cover-001.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part B/Chapters/01 - Communication Skills.pdf",
+                  "filename": "01 - Communication Skills.pdf",
+                  "title": "01 - Communication Skills",
+                  "path": "books/IT/Part B/Chapters/01 - Communication Skills.pdf",
+                  "rawPath": "IT/Part B/Chapters/01 - Communication Skills.pdf",
+                  "sizeBytes": 4842575,
+                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/01 - Communication Skills.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part B/Chapters/02 - Self-management Skills.pdf",
+                  "filename": "02 - Self-management Skills.pdf",
+                  "title": "02 - Self-management Skills",
+                  "path": "books/IT/Part B/Chapters/02 - Self-management Skills.pdf",
+                  "rawPath": "IT/Part B/Chapters/02 - Self-management Skills.pdf",
+                  "sizeBytes": 2926441,
+                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/02 - Self-management Skills.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
+                  "filename": "03 - Information and Communication Technology Skills.pdf",
+                  "title": "03 - Information and Communication Technology Skills",
+                  "path": "books/IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
+                  "rawPath": "IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
+                  "sizeBytes": 3463767,
+                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/03 - Information and Communication Technology Skills.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
+                  "filename": "04 - Entrepreneurial Skills.pdf",
+                  "title": "04 - Entrepreneurial Skills",
+                  "path": "books/IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
+                  "rawPath": "IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
+                  "sizeBytes": 2418548,
+                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/04 - Entrepreneurial Skills.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part B/Chapters/05 - Green Skills.pdf",
+                  "filename": "05 - Green Skills.pdf",
+                  "title": "05 - Green Skills",
+                  "path": "books/IT/Part B/Chapters/05 - Green Skills.pdf",
+                  "rawPath": "IT/Part B/Chapters/05 - Green Skills.pdf",
+                  "sizeBytes": 1502544,
+                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/05 - Green Skills.png",
+                  "isEconomicsException": false
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "id": "IT/Part B/Employability Skills - Full Book.pdf",
+              "filename": "Employability Skills - Full Book.pdf",
+              "title": "Employability Skills - Full Book",
+              "path": "books/IT/Part B/Employability Skills - Full Book.pdf",
+              "rawPath": "IT/Part B/Employability Skills - Full Book.pdf",
+              "sizeBytes": 4216658,
+              "thumbnailUrl": "thumbnails/IT/Part B/Employability Skills - Full Book.png",
+              "isEconomicsException": false
+            }
+          ]
+        }
+      ],
+      "files": [
+        {
+          "id": "IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
+          "filename": "CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
+          "title": "CBSE IT 402 Class X Curriculum - Session 2026-27",
+          "path": "books/IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
+          "rawPath": "IT/CBSE IT 402 Class X Curriculum - Session 2026-27.pdf",
+          "sizeBytes": 1142600,
+          "thumbnailUrl": "thumbnails/IT/CBSE IT 402 Class X Curriculum - Session 2026-27.png",
+          "isEconomicsException": false
+        }
+      ]
+    }
+  ]
+}

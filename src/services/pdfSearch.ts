@@ -1,0 +1,299 @@
+import MiniSearch from 'minisearch';
+import * as pdfjsLib from 'pdfjs-dist';
+import { BookFile, FolderNameMap, Subject } from '../types/library';
+import { getFolderDisplayName } from './folderMapper';
+
+export interface PageSearchDocument {
+  id: string;
+  text: string;
+  title: string;
+  fileId: string;
+  filePath: string;
+  subjectId: string;
+  subject: string;
+  folder: string;
+  scopeIds: string[];
+  page: number;
+}
+
+export interface SearchIndexEnvelope {
+  schemaVersion: 2;
+  indexedAt: string;
+  pdfCount: number;
+  documentCount: number;
+  index: Record<string, unknown>;
+}
+
+export interface LoadedPdfSearchIndex {
+  index: MiniSearch<PageSearchDocument>;
+  indexedAt: string;
+  pdfCount: number;
+  documentCount: number;
+  sizeBytes: number;
+  source: 'built-in' | 'rebuilt';
+}
+
+export interface PdfTextMatch extends PageSearchDocument {
+  score: number;
+  snippet: string;
+}
+
+export interface PdfIndexProgress {
+  completedPdfs: number;
+  totalPdfs: number;
+  stage: 'extracting' | 'building';
+}
+
+const INDEX_SCHEMA_VERSION = 2 as const;
+const INDEX_DB_NAME = 'studylab-search-index';
+const INDEX_DB_STORE = 'indices';
+const INDEX_DB_KEY = 'current';
+
+// Keep these options identical in scripts/build-search-index.mjs.
+const MINI_SEARCH_OPTIONS = {
+  fields: ['text', 'title', 'subject', 'folder'],
+  storeFields: ['text', 'title', 'fileId', 'filePath', 'subjectId', 'subject', 'folder', 'scopeIds', 'page'],
+};
+
+let loadedIndex: LoadedPdfSearchIndex | null = null;
+let loadingIndex: Promise<LoadedPdfSearchIndex> | null = null;
+
+export const formatIndexSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
+
+export const excludeHindiPdfs = (files: BookFile[]) =>
+  files.filter((file) => file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLocaleLowerCase() !== 'hindi');
+
+const byteLength = (value: string) => new TextEncoder().encode(value).byteLength;
+
+function openIndexDb(): Promise<IDBDatabase | null> {
+  if (typeof indexedDB === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const request = indexedDB.open(INDEX_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(INDEX_DB_STORE)) db.createObjectStore(INDEX_DB_STORE, { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(null);
+  });
+}
+
+async function readSavedIndex(): Promise<{ json: string; sizeBytes: number } | null> {
+  const db = await openIndexDb();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    const request = db.transaction(INDEX_DB_STORE, 'readonly').objectStore(INDEX_DB_STORE).get(INDEX_DB_KEY);
+    request.onsuccess = () => {
+      db.close();
+      const record = request.result as { json?: string; sizeBytes?: number } | undefined;
+      resolve(record?.json ? { json: record.json, sizeBytes: record.sizeBytes ?? byteLength(record.json) } : null);
+    };
+    request.onerror = () => { db.close(); resolve(null); };
+  });
+}
+
+async function saveIndex(json: string, sizeBytes: number): Promise<void> {
+  const db = await openIndexDb();
+  if (!db) return;
+  await new Promise<void>((resolve) => {
+    const transaction = db.transaction(INDEX_DB_STORE, 'readwrite');
+    transaction.objectStore(INDEX_DB_STORE).put({ id: INDEX_DB_KEY, json, sizeBytes });
+    transaction.oncomplete = () => { db.close(); resolve(); };
+    transaction.onerror = () => { db.close(); resolve(); };
+    transaction.onabort = () => { db.close(); resolve(); };
+  });
+}
+
+function decodeIndex(json: string, sizeBytes: number, source: LoadedPdfSearchIndex['source']): LoadedPdfSearchIndex {
+  const envelope = JSON.parse(json) as SearchIndexEnvelope;
+  if (envelope.schemaVersion !== INDEX_SCHEMA_VERSION || !envelope.index) {
+    throw new Error('The PDF search index has an unsupported format. Rebuild it from Settings.');
+  }
+  const index = MiniSearch.loadJSON<PageSearchDocument>(JSON.stringify(envelope.index), MINI_SEARCH_OPTIONS);
+  return {
+    index,
+    indexedAt: envelope.indexedAt,
+    pdfCount: envelope.pdfCount,
+    documentCount: envelope.documentCount,
+    sizeBytes,
+    source,
+  };
+}
+
+export async function loadPdfSearchIndex(getAssetUrl: (path: string) => string): Promise<LoadedPdfSearchIndex> {
+  if (loadedIndex) return loadedIndex;
+  if (loadingIndex) return loadingIndex;
+
+  loadingIndex = (async () => {
+    const saved = await readSavedIndex();
+    if (saved) {
+      try {
+        loadedIndex = decodeIndex(saved.json, saved.sizeBytes, 'rebuilt');
+        return loadedIndex;
+      } catch {
+        // A stale or incompatible local index falls back to the baked asset.
+      }
+    }
+
+    const response = await fetch(getAssetUrl('search/index.json'));
+    if (!response.ok) throw new Error('The built-in PDF search index could not be loaded.');
+    const json = await response.text();
+    loadedIndex = decodeIndex(json, byteLength(json), 'built-in');
+    return loadedIndex;
+  })();
+
+  try {
+    return await loadingIndex;
+  } finally {
+    loadingIndex = null;
+  }
+}
+
+const cleanText = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+function getPdfBreadcrumb(file: BookFile, subject: Subject, folderNameMap: FolderNameMap): string {
+  const pathParts = file.rawPath.replace(/\\/g, '/').split('/');
+  const subjectPartCount = subject.path.split('/').length;
+  const folderParts = pathParts.slice(subjectPartCount, -1);
+  let currentPath = subject.path;
+  return [subject.displayName, ...folderParts.map((part) => {
+    currentPath = `${currentPath}/${part}`;
+    return getFolderDisplayName(currentPath, folderNameMap);
+  })].join(' / ');
+}
+
+function getSubjectForFile(file: BookFile, subjects: Subject[]): Subject | undefined {
+  return subjects.find((subject) => file.rawPath === subject.path || file.rawPath.startsWith(`${subject.path}/`));
+}
+
+export async function buildPdfSearchIndex(
+  inputFiles: BookFile[],
+  subjects: Subject[],
+  folderNameMap: FolderNameMap,
+  getAssetUrl: (path: string) => string,
+  onProgress: (progress: PdfIndexProgress) => void,
+): Promise<{ json: string; sizeBytes: number; pdfCount: number; documentCount: number }> {
+  const files = excludeHindiPdfs(inputFiles);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = getAssetUrl('pdf.worker.min.mjs');
+  const miniSearch = new MiniSearch<PageSearchDocument>(MINI_SEARCH_OPTIONS);
+  let pageBatch: PageSearchDocument[] = [];
+  let documentCount = 0;
+
+  for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
+    const file = files[fileIndex];
+    const subject = getSubjectForFile(file, subjects);
+    if (subject) {
+      const task = pdfjsLib.getDocument({
+        url: getAssetUrl(file.path),
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
+        cMapPacked: true,
+        standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/',
+      });
+      try {
+        const document = await task.promise;
+        const folder = getPdfBreadcrumb(file, subject, folderNameMap);
+        const scopeIds = [subject.id, subject.path];
+        const rawFolders = file.rawPath.replace(/\\/g, '/').split('/').slice(subject.path.split('/').length, -1);
+        let folderPath = subject.path;
+        rawFolders.forEach((part) => { folderPath = `${folderPath}/${part}`; scopeIds.push(folderPath); });
+        scopeIds.push(`@direct:${folderPath}`);
+        for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+          const page = await document.getPage(pageNumber);
+          const content = await page.getTextContent();
+          const text = cleanText(content.items.map((item) => ('str' in item ? item.str : '')).join(' '));
+          if (!text) continue;
+          pageBatch.push({
+            id: `${file.id}::${pageNumber}`,
+            text,
+            title: file.title,
+            fileId: file.id,
+            filePath: file.path,
+            subjectId: subject.id,
+            subject: subject.displayName,
+            folder,
+            scopeIds: [...new Set(scopeIds)],
+            page: pageNumber,
+          });
+          documentCount += 1;
+          if (pageBatch.length >= 400) {
+            await miniSearch.addAllAsync(pageBatch, { chunkSize: 200 });
+            pageBatch = [];
+          }
+        }
+      } finally {
+        await task.destroy();
+      }
+    }
+    onProgress({ completedPdfs: fileIndex + 1, totalPdfs: files.length, stage: 'extracting' });
+  }
+
+  if (pageBatch.length) await miniSearch.addAllAsync(pageBatch, { chunkSize: 200 });
+  onProgress({ completedPdfs: files.length, totalPdfs: files.length, stage: 'building' });
+
+  const envelope: SearchIndexEnvelope = {
+    schemaVersion: INDEX_SCHEMA_VERSION,
+    indexedAt: new Date().toISOString(),
+    pdfCount: files.length,
+    documentCount,
+    index: miniSearch.toJSON() as unknown as Record<string, unknown>,
+  };
+  const json = JSON.stringify(envelope);
+  const sizeBytes = byteLength(json);
+  const decoded = decodeIndex(json, sizeBytes, 'rebuilt');
+  loadedIndex = decoded;
+  await saveIndex(json, sizeBytes);
+  return { json, sizeBytes, pdfCount: files.length, documentCount };
+}
+
+function makeSnippet(text: string, query: string): string {
+  const normalized = cleanText(text);
+  const lowerText = normalized.toLocaleLowerCase();
+  const lowerQuery = query.toLocaleLowerCase().trim();
+  const terms = lowerQuery.split(/\s+/).filter(Boolean);
+  const foundAt = lowerText.indexOf(lowerQuery);
+  const startAt = foundAt >= 0 ? foundAt : Math.max(0, lowerText.indexOf(terms[0] ?? ''));
+  const start = Math.max(0, startAt - 90);
+  const end = Math.min(normalized.length, Math.max(startAt, 0) + 180);
+  return `${start > 0 ? '…' : ''}${normalized.slice(start, end)}${end < normalized.length ? '…' : ''}`;
+}
+
+export function searchPdfPages(
+  loaded: LoadedPdfSearchIndex,
+  rawQuery: string,
+  scopeIds: string[] = [],
+  fileId?: string,
+  limit = 100,
+): PdfTextMatch[] {
+  const query = rawQuery.trim();
+  if (!query) return [];
+  const results = loaded.index.search(query, {
+    prefix: true,
+    fuzzy: 0.15,
+    combineWith: 'AND',
+    filter: (result) => {
+      const document = result as typeof result & PageSearchDocument;
+      const docScopes = document.scopeIds ?? [document.subjectId];
+      return (!scopeIds.length || docScopes.some((scopeId) => scopeIds.includes(scopeId))) && (!fileId || document.fileId === fileId);
+    },
+  });
+
+  return results.map((result) => {
+    const document = loaded.index.getStoredFields(result.id) as Omit<PageSearchDocument, 'id'>;
+    return {
+      id: String(result.id),
+      ...document,
+      score: result.score,
+      snippet: makeSnippet(document.text ?? '', query),
+    };
+  }).sort((a, b) => {
+    const term = query.toLocaleLowerCase();
+    const exactA = a.text.toLocaleLowerCase().includes(term) ? 1 : 0;
+    const exactB = b.text.toLocaleLowerCase().includes(term) ? 1 : 0;
+    return exactB - exactA || b.score - a.score;
+  }).slice(0, limit);
+}
+

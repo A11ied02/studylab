@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 580" width="100%" height="100%">
+  <defs>
+    <linearGradient id="grad_economics" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B45309" />
+      <stop offset="60%" stop-color="#92400E" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <pattern id="grid_economics" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.04)" stroke-width="0.8"/>
+    </pattern>
+  </defs>
+  <!-- Background with subtle textured grid -->
+  <rect width="400" height="580" rx="14" fill="url(#grad_economics)"/>
+  <rect width="400" height="580" rx="14" fill="url(#grid_economics)"/>
+
+  <!-- Top bar header -->
+  <rect x="25" y="24" width="350" height="34" rx="6" fill="rgba(0, 0, 0, 0.25)" stroke="rgba(255, 255, 255, 0.08)"/>
+  <text x="40" y="46" font-family="Ubuntu, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#FCD34D" letter-spacing="1.5">NCERT • CLASS X</text>
+  <rect x="305" y="30" width="60" height="22" rx="4" fill="#FCD34D"/>
+  <text x="335" y="45" font-family="Ubuntu, -apple-system, sans-serif" font-size="10" font-weight="800" fill="#1C1C1E" text-anchor="middle">ECONOMICS</text>
+
+  <!-- Central Artwork Motif -->
+  <g>
+    
+      <!-- Economic trend &amp; Rupee emblem -->
+      <polyline points="140,320 170,290 205,305 240,250 265,230" stroke="#FCD34D" stroke-width="3" fill="none"/>
+      <circle cx="265" cy="230" r="6" fill="#FCD34D"/>
+      <!-- Rupee symbol in coin -->
+      <circle cx="200" cy="410" r="36" stroke="#FCD34D" stroke-width="2" fill="rgba(252, 211, 77, 0.15)"/>
+      <text x="200" y="422" text-anchor="middle" font-family="Ubuntu, sans-serif" font-size="34" font-weight="700" fill="#FCD34D">₹</text>
+    
+  </g>
+
+  <!-- Bottom Title Card with Ubuntu styling -->
+  <rect x="24" y="470" width="352" height="86" rx="10" fill="rgba(18, 18, 20, 0.85)" stroke="rgba(255, 255, 255, 0.1)"/>
+  <text x="40" y="504" font-family="Ubuntu, -apple-system, sans-serif" font-size="18" font-weight="800" fill="#FFFFFF" letter-spacing="0.5">UNDERSTANDING ECONOMIC DEVELOPMENT</text>
+  <text x="40" y="528" font-family="Ubuntu, -apple-system, sans-serif" font-size="12" font-weight="500" fill="rgba(255, 255, 255, 0.7)">Economics Textbook for Class X</text>
+  <line x1="40" y1="540" x2="140" y2="540" stroke="#FCD34D" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
