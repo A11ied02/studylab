@@ -3,6 +3,9 @@ import { ChevronLeft, ImageOff } from 'lucide-react';
 import { DEFAULT_IT_GRADIENTS, useLibrary } from '../../context/LibraryContext';
 import { BookFile, BookFolder } from '../../types/library';
 
+const makeSvgGradientId = (prefix: string, index: number, folderPath: string) =>
+  `${prefix}_${index}_${folderPath.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
 /* ─── Single chapter / PDF card ─────────────────────────────────────── */
 const ChapterCard: React.FC<{ file: BookFile; onOpen: (f: BookFile) => void; showTitle?: boolean }> = ({
   file,
@@ -43,7 +46,7 @@ const ChapterCard: React.FC<{ file: BookFile; onOpen: (f: BookFile) => void; sho
           {file.title}
         </p>
       ) : (
-        <div className="absolute inset-x-3 bottom-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent py-3 px-2.5 rounded-b-xl translate-y-full group-hover:translate-y-0 transition-transform duration-200">
+        <div className="absolute inset-x-3 bottom-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent py-3 px-2.5 rounded-b-xl translate-y-0 md:translate-y-full md:group-hover:translate-y-0 md:group-focus-visible:translate-y-0 transition-transform duration-200">
           <p className="text-white text-xs font-medium line-clamp-2 leading-snug">
             {file.title}
           </p>
@@ -222,7 +225,7 @@ export const SubjectView: React.FC = () => {
           {subfolders.map((folder, idx) => {
             // For Science root: Bio, Phy, Chem are filled gradient folders
             if (isScience && isRoot) {
-              const gradId = `sciGrad_${idx}_${folder.displayName.replace(/\s+/g, '')}`;
+              const gradId = makeSvgGradientId('sciGrad', idx, folder.path);
               return (
                 <FilledGradientFolderCard
                   key={folder.path}
@@ -236,7 +239,7 @@ export const SubjectView: React.FC = () => {
 
             // All IT folders use the configurable Part A / Part B gradients.
             if (isIT) {
-              const gradId = `itGrad_${idx}_${folder.displayName.replace(/\s+/g, '')}`;
+              const gradId = makeSvgGradientId('itGrad', idx, folder.path);
               return (
                 <FilledGradientFolderCard
                   key={folder.path}

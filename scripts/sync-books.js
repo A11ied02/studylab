@@ -105,9 +105,17 @@ function cleanTitle(filename, relFolderPath) {
     return `${base} - ${MATHS_CHAPTER_NAMES[filename]}`;
   }
   if (relFolderPath.includes('Sparsh') && HINDI_SPARSH_NAMES[filename]) {
-    return `${base} - ${HINDI_SPARSH_NAMES[filename]}`;
+    return `${base}- ${HINDI_SPARSH_NAMES[filename]}`;
   }
   return base;
+}
+
+function getPublishedFilename(filename, relFolderPath) {
+  if (relFolderPath.replace(/\\/g, '/').includes('Sparsh') && HINDI_SPARSH_NAMES[filename]) {
+    const base = filename.replace(/\.pdf$/i, '');
+    return `${base}- ${HINDI_SPARSH_NAMES[filename]}.pdf`;
+  }
+  return filename;
 }
 
 let totalPdfCount = 0;
@@ -158,8 +166,11 @@ function scanDir(dir, relPath = '') {
 
       totalPdfCount++;
 
+      const publishedFilename = getPublishedFilename(item, relPath);
+      const publishedRelPath = relPath ? `${relPath}/${publishedFilename}` : publishedFilename;
+
       // Copy file to public/books if source is different
-      const destPdf = path.join(destBooksDir, itemRelPath);
+      const destPdf = path.join(destBooksDir, publishedRelPath);
       const destSubDir = path.dirname(destPdf);
       fs.mkdirSync(destSubDir, { recursive: true });
 
@@ -170,9 +181,9 @@ function scanDir(dir, relPath = '') {
       // Generate thumbnail
       const destThumbDir = path.join(thumbnailsDir, relPath);
       fs.mkdirSync(destThumbDir, { recursive: true });
-      const thumbBaseName = item.replace(/\.pdf$/i, '');
+      const thumbBaseName = publishedFilename.replace(/\.pdf$/i, '');
       const finalThumbPath = path.join(destThumbDir, `${thumbBaseName}.png`);
-      const thumbWebPath = `thumbnails/${itemRelPath.replace(/\.pdf$/i, '.png')}`;
+      const thumbWebPath = `thumbnails/${publishedRelPath.replace(/\.pdf$/i, '.png')}`;
 
       // Economics exception: Use page 2 for Economics! Page 1 for others.
       const isEconomics = itemRelPath.includes('SST/Eco') || itemRelPath.includes('Eco');
@@ -227,11 +238,11 @@ function scanDir(dir, relPath = '') {
       }
 
       files.push({
-        id: itemRelPath,
-        filename: item,
+        id: publishedRelPath,
+        filename: publishedFilename,
         title: cleanTitle(item, relPath),
-        path: `books/${itemRelPath}`,
-        rawPath: itemRelPath,
+        path: `books/${publishedRelPath}`,
+        rawPath: publishedRelPath,
         sizeBytes: stat.size,
         thumbnailUrl: thumbWebPath,
         isEconomicsException: isEconomics
