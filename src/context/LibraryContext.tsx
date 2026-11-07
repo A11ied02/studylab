@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { BookFile, BookFolder, FolderNameMap, LibraryManifest, Subject } from '../types/library';
 import { sortSubjects, SUBJECT_ORDER } from '../constants/subjectOrder';
 import { setFolderNameMap, getFolderDisplayName } from '../services/folderMapper';
 import { StorageService } from '../services/storage';
 import { preloadPdfDocument } from '../services/pdfDocument';
 import { saveWorkspaceValue } from '../services/workspaceChanges';
+import { clearAppRoute, parseAppRoute, writeAppRoute } from '../services/appRoute';
 
 export interface ScienceGradients {
   bio: [string, string];
@@ -50,6 +51,7 @@ interface LibraryContextType {
   activePdfPage: number;
   activePdfSearchQuery: string;
   activePdfSearchPage: number;
+  activePdfMinKeywordMatches: number;
   sidebarExpanded: boolean;
   isSettingsOpen: boolean;
 
@@ -66,7 +68,8 @@ interface LibraryContextType {
   navigateToSubject: (subjectId: string) => void;
   navigateToFolder: (folderPath: string) => void;
   navigateToBooksHome: () => void;
-  openPdf: (file: BookFile, pageNum?: number, searchQuery?: string) => void;
+  openPdf: (file: BookFile, pageNum?: number, searchQuery?: string, minKeywordMatches?: number) => void;
+  updatePdfRoute: (pageNum: number, searchQuery: string, minKeywordMatches: number) => void;
   closePdf: () => void;
   toggleSidebar: () => void;
   setSidebarExpanded: (expanded: boolean) => void;
@@ -86,13 +89,14 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [error, setError] = useState<string | null>(null);
 
   // Navigation
-  const [activeTab, setActiveTab] = useState<LibraryTab>('books');
+  const [activeTab, setActiveTabState] = useState<LibraryTab>('books');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null);
   const [activePdf, setActivePdf] = useState<BookFile | null>(null);
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [activePdfSearchQuery, setActivePdfSearchQuery] = useState('');
   const [activePdfSearchPage, setActivePdfSearchPage] = useState(1);
+  const [activePdfMinKeywordMatches, setActivePdfMinKeywordMatches] = useState(1);
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
@@ -234,6 +238,15 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return findFolderByPath(subjects, selectedFolderPath);
   }, [subjects, selectedFolderPath, selectedSubject]);
 
+  const setActiveTab = (tab: LibraryTab) => {
+    setActiveTabState(tab);
+    if (tab === 'books') {
+      writeAppRoute({ path: selectedFolder?.path ?? selectedSubject?.path ?? '', scopeIds: [] });
+    } else if (parseAppRoute().isBooksRoute) {
+      clearAppRoute();
+    }
+  };
+
   const allPdfs = useMemo(() => {
     const list: BookFile[] = [];
     const extractPdfs = (f: BookFolder) => {
@@ -248,35 +261,95 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return list;
   }, [subjects]);
 
+  const applyRoute = useCallback(() => {
+    const route = parseAppRoute();
+    if (!route.isBooksRoute || !subjects.length) return;
+    setActiveTabState('books');
+
+    if (!route.path) {
+      setSelectedSubjectId(null);
+      setSelectedFolderPath(null);
+      setActivePdf(null);
+      setActivePdfSearchQuery('');
+      setActivePdfSearchPage(1);
+      setActivePdfMinKeywordMatches(1);
+      return;
+    }
+
+    const file = allPdfs.find((item) => item.rawPath === route.path);
+    if (file) {
+      const subject = subjects.find((item) => file.rawPath === item.path || file.rawPath.startsWith(`${item.path}/`));
+      if (!subject) return;
+      const folderPath = file.rawPath.split('/').slice(0, -1).join('/');
+      setSelectedSubjectId(subject.id);
+      setSelectedFolderPath(folderPath || subject.path);
+      setActivePdf(file);
+      setActivePdfPage(route.page ?? 1);
+      setActivePdfSearchQuery(route.query ?? '');
+      setActivePdfSearchPage(route.page ?? 1);
+      setActivePdfMinKeywordMatches(route.minKeywordMatches ?? 1);
+      return;
+    }
+
+    const subject = subjects.find((item) => route.path === item.id || route.path === item.path || route.path.startsWith(`${item.path}/`));
+    if (!subject) return;
+    setSelectedSubjectId(subject.id);
+    setSelectedFolderPath(route.path === subject.id ? subject.path : route.path);
+    setActivePdf(null);
+    setActivePdfSearchQuery('');
+    setActivePdfSearchPage(1);
+    setActivePdfMinKeywordMatches(1);
+  }, [allPdfs, subjects]);
+
+  useEffect(() => {
+    if (!subjects.length) return;
+    applyRoute();
+    window.addEventListener('hashchange', applyRoute);
+    window.addEventListener('popstate', applyRoute);
+    return () => {
+      window.removeEventListener('hashchange', applyRoute);
+      window.removeEventListener('popstate', applyRoute);
+    };
+  }, [subjects.length, applyRoute]);
+
+  useEffect(() => {
+    if (activeTab !== 'books' && parseAppRoute().isBooksRoute) clearAppRoute();
+  }, [activeTab]);
+
   const navigateToSubject = (subjectId: string) => {
-    setActiveTab('books');
+    setActiveTabState('books');
     setActivePdf(null);
     setActivePdfSearchQuery('');
     setSelectedSubjectId(subjectId);
     setSelectedFolderPath(subjectId);
+    writeAppRoute({ path: subjects.find((subject) => subject.id === subjectId || subject.path === subjectId)?.path ?? subjectId, scopeIds: [] });
   };
 
   const navigateToFolder = (folderPath: string) => {
-    setActiveTab('books');
+    setActiveTabState('books');
     setActivePdf(null);
     setActivePdfSearchQuery('');
     setSelectedFolderPath(folderPath);
+    writeAppRoute({ path: folderPath, scopeIds: [] });
   };
 
   const navigateToBooksHome = () => {
-    setActiveTab('books');
+    setActiveTabState('books');
     setSelectedSubjectId(null);
     setSelectedFolderPath(null);
     setActivePdf(null);
     setActivePdfSearchQuery('');
+    writeAppRoute({ path: '', scopeIds: [] });
   };
 
-  const openPdf = (file: BookFile, pageNum = 1, searchQuery = '') => {
+  const openPdf = (file: BookFile, pageNum = 1, searchQuery = '', minKeywordMatches = 1) => {
     preloadPdfDocument(getAssetUrl(file.path), getAssetUrl('pdf.worker.min.mjs'));
     setActivePdf(file);
     setActivePdfPage(Math.max(1, pageNum));
     setActivePdfSearchQuery(searchQuery.trim());
     setActivePdfSearchPage(Math.max(1, pageNum));
+    setActivePdfMinKeywordMatches(Math.max(1, Math.round(minKeywordMatches)));
+    writeAppRoute({ path: file.rawPath, page: Math.max(1, pageNum), query: searchQuery.trim(), minKeywordMatches, scopeIds: [] });
     StorageService.recordBookOpened({
       id: file.id,
       title: file.title,
@@ -291,7 +364,20 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivePdf(null);
     setActivePdfSearchQuery('');
     setActivePdfSearchPage(1);
+    setActivePdfMinKeywordMatches(1);
+    writeAppRoute({ path: selectedFolderPath ?? selectedSubjectId ?? '', scopeIds: [] });
   };
+
+  const updatePdfRoute = useCallback((pageNum: number, searchQuery: string, minKeywordMatches: number) => {
+    if (!activePdf) return;
+    writeAppRoute({
+      path: activePdf.rawPath,
+      page: Math.max(1, pageNum),
+      query: searchQuery.trim(),
+      minKeywordMatches: Math.max(1, minKeywordMatches),
+      scopeIds: [],
+    }, true);
+  }, [activePdf]);
 
   const toggleSidebar = () => {
     setSidebarExpanded(prev => !prev);
@@ -312,6 +398,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activePdfPage,
         activePdfSearchQuery,
         activePdfSearchPage,
+        activePdfMinKeywordMatches,
         sidebarExpanded,
         isSettingsOpen,
         scienceGradients,
@@ -325,6 +412,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         navigateToFolder,
         navigateToBooksHome,
         openPdf,
+        updatePdfRoute,
         closePdf,
         toggleSidebar,
         setSidebarExpanded,

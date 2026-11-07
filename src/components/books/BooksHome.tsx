@@ -35,7 +35,7 @@ const BookCover: React.FC<BookCoverProps> = ({ subject, onClick }) => {
           <span className="text-[11px] font-mono tracking-wider uppercase opacity-40">Cover Missing</span>
         </div>
       )}
-      <div className="absolute inset-x-3 bottom-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent py-3 px-2.5 rounded-b-xl translate-y-full group-hover:translate-y-0 group-focus-visible:translate-y-0 transition-transform duration-200">
+      <div className="absolute inset-x-3 bottom-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent py-3 px-2.5 rounded-b-xl translate-y-0 md:translate-y-full md:group-hover:translate-y-0 md:group-focus-visible:translate-y-0 transition-transform duration-200">
         <p className="text-white text-xs font-semibold line-clamp-2 leading-snug">
           {subject.displayName}
         </p>

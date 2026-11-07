@@ -87,3 +87,19 @@ export function parseCommaSeparatedKeywords(query: string): string[] {
   if (parts.length < 2 || parts.some((part) => !part || /\s/u.test(part))) return [];
   return [...new Set(parts)];
 }
+
+/** Count exact normalized word or phrase occurrences in a text block. */
+export function countSearchOccurrences(text: string, query: string): number {
+  const words = normalizeSearchText(text).split(' ').filter(Boolean);
+  const keywords = parseCommaSeparatedKeywords(query);
+  const phrases = keywords.length ? keywords : [normalizeSearchText(query)];
+  return phrases.reduce((total, phrase) => {
+    const queryWords = phrase.split(' ').filter(Boolean);
+    if (!queryWords.length) return total;
+    let count = 0;
+    for (let start = 0; start <= words.length - queryWords.length; start += 1) {
+      if (queryWords.every((word, index) => words[start + index] === word)) count += 1;
+    }
+    return total + count;
+  }, 0);
+}

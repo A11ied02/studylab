@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, FileText, Search, Settings, X, LogOut, RefreshCw, LoaderCircle } from 'lucide-react';
+import { ChevronRight, ExternalLink, FileText, Search, Settings, X, LogOut, RefreshCw, LoaderCircle } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCloudSync } from '../../context/CloudSyncContext';
 import { getBreadcrumbTrail } from '../../services/folderMapper';
 import { HighlightedText } from './HighlightedText';
+import { PYQS_SITE_URL } from './PyqsView';
 
 interface TopBarProps {
   title: string;
@@ -13,9 +14,11 @@ interface TopBarProps {
   isGlobalSearchOpen: boolean;
   flashcardsQuery: string;
   onFlashcardsSearch: (query: string) => void;
+  guestMode?: boolean;
+  onAuthenticate?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSearch, isGlobalSearchOpen, flashcardsQuery, onFlashcardsSearch }) => {
+export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSearch, isGlobalSearchOpen, flashcardsQuery, onFlashcardsSearch, guestMode = false, onAuthenticate }) => {
   const { activeTab, setActiveTab, allPdfs, openPdf, folderNameMap, setIsSettingsOpen } = useLibrary();
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -100,7 +103,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
 
   const mobileSearchActions = (
     <div className="flex shrink-0 items-center gap-2 md:hidden">
-      <button
+      {!guestMode && <button
         type="button"
         onClick={() => setIsSettingsOpen(true)}
         aria-label="Open settings"
@@ -108,7 +111,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
         className="flex h-11 w-11 items-center justify-center rounded-xl border border-bg-border bg-bg-surface text-neutral-300 transition hover:border-white/20 hover:text-white"
       >
         <Settings size={18} strokeWidth={1.8} />
-      </button>
+      </button>}
       <button
         type="button"
         onClick={() => onOpenGlobalSearch('')}
@@ -125,7 +128,9 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
     <>
       <div className="flex items-center gap-4 px-4 pt-3 pb-3 sm:gap-6 sm:px-8 sm:pt-5 sm:pb-5 border-b border-bg-border select-none">
         <div className="min-w-0 flex flex-1 items-center gap-5 overflow-x-auto sm:gap-6">
-          {([
+          {(guestMode ? [
+            { id: 'books', label: 'Books' },
+          ] as const : [
             { id: 'books', label: 'Books' },
             { id: 'flashcards', label: 'Flashcards' },
             { id: 'pyqs', label: 'PYQs' },
@@ -143,7 +148,28 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
             );
           })}
         </div>
-        <div className="relative shrink-0" ref={accountRef}>
+        {activeTab === 'pyqs' && (
+          <a
+            href={PYQS_SITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open PYQs site in a new tab"
+            title="Open PYQs site in a new tab"
+            className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-neutral-300 transition hover:border-blue-400/50 hover:bg-white/5 hover:text-white"
+          >
+            <ExternalLink size={17} strokeWidth={1.8} />
+          </a>
+        )}
+        {guestMode ? (
+          <button
+            type="button"
+            onClick={onAuthenticate}
+            className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 sm:px-4 sm:py-2.5 sm:text-sm"
+          >
+            <span className="sm:hidden">Sign in</span>
+            <span className="hidden sm:inline">Sign in to unlock features</span>
+          </button>
+        ) : <div className="relative shrink-0" ref={accountRef}>
           <button
             type="button"
             onClick={() => setAccountOpen((open) => !open)}
@@ -188,10 +214,10 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 md:flex-nowrap md:gap-8 md:px-8 md:pt-6 md:pb-5">
+      <div className={`${activeTab === 'pyqs' ? 'hidden md:flex' : 'flex'} flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 md:flex-nowrap md:gap-8 md:px-8 md:pt-6 md:pb-5`}>
         <div className="order-1 flex w-full min-w-0 items-center justify-between select-none md:order-none md:w-auto">
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold text-white tracking-tight sm:text-2xl">{title}</h1>
@@ -270,8 +296,6 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
           {mobileSearchActions}
         </div>
         )}
-
-        {activeTab === 'pyqs' && <div className="order-2 ml-auto md:hidden">{mobileSearchActions}</div>}
 
         <button
           type="button"

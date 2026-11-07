@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ImageOff } from 'lucide-react';
-import { useLibrary } from '../../context/LibraryContext';
+import { DEFAULT_IT_GRADIENTS, useLibrary } from '../../context/LibraryContext';
 import { BookFile, BookFolder } from '../../types/library';
 
 /* ─── Single chapter / PDF card ─────────────────────────────────────── */
@@ -186,7 +186,7 @@ export const SubjectView: React.FC = () => {
   const getITGradientColors = (folder: BookFolder): [string, string] => {
     return folder.path.toLowerCase().includes('part b')
       ? itGradients.partB
-      : itGradients.partA;
+      : DEFAULT_IT_GRADIENTS.partA;
   };
 
   // Grid responsiveness based on bookScale

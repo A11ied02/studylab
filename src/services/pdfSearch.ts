@@ -2,7 +2,7 @@ import MiniSearch from 'minisearch';
 import * as pdfjsLib from 'pdfjs-dist';
 import { BookFile, FolderNameMap, Subject } from '../types/library';
 import { getFolderDisplayName } from './folderMapper';
-import { normalizeSearchText, normalizeSearchTextWithMap, parseCommaSeparatedKeywords } from './searchText';
+import { countSearchOccurrences, normalizeSearchText, normalizeSearchTextWithMap, parseCommaSeparatedKeywords } from './searchText';
 
 export interface PageSearchDocument {
   id: string;
@@ -37,6 +37,7 @@ export interface LoadedPdfSearchIndex {
 export interface PdfTextMatch extends PageSearchDocument {
   score: number;
   snippet: string;
+  occurrences: number;
 }
 
 export interface PdfIndexProgress {
@@ -296,7 +297,7 @@ export function searchPdfPages(
   if (keywords.length) {
     const matchesById = new Map<string, { id: string; score: number; keywordMatches: number }>();
     for (const keyword of keywords) {
-      for (const result of loaded.index.search(keyword, { prefix: true, fuzzy: 0.15, combineWith: 'AND', filter })) {
+      for (const result of loaded.index.search(keyword, { prefix: false, fuzzy: false, combineWith: 'AND', filter })) {
         const id = String(result.id);
         const previous = matchesById.get(id);
         matchesById.set(id, {
@@ -310,7 +311,7 @@ export function searchPdfPages(
       .filter((result) => result.keywordMatches >= minimumMatches)
       .map(({ id, score }) => ({ id, score }));
   } else {
-    results = loaded.index.search(query, { prefix: true, fuzzy: 0.15, combineWith: 'AND', filter })
+    results = loaded.index.search(query, { prefix: false, fuzzy: false, combineWith: 'AND', filter })
       .map((result) => ({ id: String(result.id), score: result.score }));
   }
 
@@ -321,12 +322,23 @@ export function searchPdfPages(
       ...document,
       score: result.score,
       snippet: makeSnippet(document.text ?? '', query),
+      occurrences: countSearchOccurrences(document.text ?? '', query),
     };
+  }).filter((match) => {
+    // MiniSearch also searches metadata fields; only keep pages whose text contains the requested terms.
+    const tokens = normalizeSearchText(match.text).split(' ').filter(Boolean);
+    if (keywords.length) {
+      const tokenSet = new Set(tokens);
+      const matchedKeywords = keywords.filter((keyword) => tokenSet.has(keyword)).length;
+      return matchedKeywords >= minimumMatches;
+    }
+    const queryTokens = normalizeSearchText(query).split(' ').filter(Boolean);
+    return queryTokens.length > 0 && tokens.some((_, start) => queryTokens.every((word, index) => tokens[start + index] === word));
   }).sort((a, b) => {
     const normalizedQuery = normalizeSearchText(query);
     const exactA = normalizedQuery && normalizeSearchText(a.text).includes(normalizedQuery) ? 1 : 0;
     const exactB = normalizedQuery && normalizeSearchText(b.text).includes(normalizedQuery) ? 1 : 0;
     return exactB - exactA || b.score - a.score;
-  }).slice(0, options.limit ?? 100);
+  }).slice(0, options.limit ?? Number.MAX_SAFE_INTEGER);
 }
 

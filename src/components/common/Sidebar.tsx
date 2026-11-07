@@ -21,12 +21,11 @@ const SUBJECT_ICONS: Record<string, React.ReactNode> = {
   IT: <Cpu size={19} strokeWidth={1.7} className="text-white" />,
 };
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<{ guestMode?: boolean }> = ({ guestMode = false }) => {
   const {
     subjects,
     selectedSubject,
     activeTab,
-    setActiveTab,
     sidebarExpanded,
     isSettingsOpen,
     setIsSettingsOpen,
@@ -120,7 +119,6 @@ export const Sidebar: React.FC = () => {
               key={subject.id}
               onClick={() => {
                 setIsSettingsOpen(false);
-                setActiveTab('books');
                 navigateToSubject(subject.id);
               }}
               title={subject.displayName}
@@ -153,7 +151,7 @@ export const Sidebar: React.FC = () => {
       {/* Spacer */}
       <div className="flex-1" />
 
-      <button
+      {!guestMode && <button
         type="button"
         onClick={() => setIsSettingsOpen(!isSettingsOpen)}
         aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
@@ -169,7 +167,7 @@ export const Sidebar: React.FC = () => {
             Settings
           </span>
         )}
-      </button>
+      </button>}
 
     </aside>
   );

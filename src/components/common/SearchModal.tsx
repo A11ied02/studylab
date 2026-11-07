@@ -9,7 +9,10 @@ import { HighlightedText } from './HighlightedText';
 interface SearchModalProps {
   isOpen: boolean;
   initialQuery: string;
+  initialScopeIds?: string[];
+  initialMinKeywordMatches?: number;
   onClose: () => void;
+  onRouteChange?: (query: string, scopeIds: string[], minKeywordMatches: number) => void;
 }
 
 type SearchStatus = 'idle' | 'loading' | 'done' | 'error';
@@ -69,7 +72,14 @@ function isScopePartial(scope: SearchScope, selectedIds: string[]): boolean {
     || scope.children.some((child) => isScopeChecked(child, selectedIds) || isScopePartial(child, selectedIds));
 }
 
-export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, onClose }) => {
+export const SearchModal: React.FC<SearchModalProps> = ({
+  isOpen,
+  initialQuery,
+  initialScopeIds = [],
+  initialMinKeywordMatches = 1,
+  onClose,
+  onRouteChange,
+}) => {
   const { allPdfs, subjects, openPdf, getAssetUrl } = useLibrary();
   const [query, setQuery] = useState('');
   const [selectedScopeIds, setSelectedScopeIds] = useState<string[]>([]);
@@ -90,14 +100,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   useEffect(() => {
     if (previousKeywordSignatureRef.current === keywordSignature) return;
     previousKeywordSignatureRef.current = keywordSignature;
-    setMinKeywordMatches(Math.max(1, keywordTerms.length));
+    setMinKeywordMatches(query.trim() === initialQuery.trim() && initialQuery.trim()
+      ? initialMinKeywordMatches
+      : Math.max(1, keywordTerms.length));
     setIsKeywordSettingsOpen(false);
-  }, [keywordSignature, keywordTerms.length]);
+  }, [keywordSignature, keywordTerms.length, query, initialQuery, initialMinKeywordMatches]);
 
   useEffect(() => {
     if (!isOpen) return;
     setQuery(initialQuery);
-    setSelectedScopeIds([]);
+    setSelectedScopeIds(initialScopeIds);
+    setMinKeywordMatches(initialMinKeywordMatches);
     setIsFilterOpen(false);
     setIsKeywordSettingsOpen(false);
     setResults([]);
@@ -105,7 +118,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
     setStatus('idle');
     setError('');
     window.setTimeout(() => inputRef.current?.focus(), 50);
-  }, [isOpen, initialQuery]);
+  }, [isOpen, initialQuery, initialScopeIds.join('\u0000'), initialMinKeywordMatches]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -142,9 +155,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
   const pageCount = Math.max(1, Math.ceil(results.length / RESULTS_PER_PAGE));
   const pageStart = (currentPage - 1) * RESULTS_PER_PAGE;
   const visibleResults = results.slice(pageStart, pageStart + RESULTS_PER_PAGE);
+  const totalOccurrences = results.reduce((sum, result) => sum + result.occurrences, 0);
 
-  const runSearch = async (scope = selectedScopeIds, minimumMatches = minKeywordMatches) => {
-    const term = query.trim();
+  const runSearch = async (scope = selectedScopeIds, minimumMatches = minKeywordMatches, rawTerm = query) => {
+    const term = rawTerm.trim();
     if (!term) return;
     const requestId = ++requestRef.current;
     setCurrentPage(1);
@@ -164,6 +178,13 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
       setStatus('error');
     }
   };
+
+  useEffect(() => {
+    if (!isOpen || !initialQuery.trim()) return;
+    void runSearch(initialScopeIds, initialMinKeywordMatches, initialQuery);
+    // URL-seeded searches should run when the modal opens or a shared query changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialQuery, initialScopeIds.join('\u0000'), initialMinKeywordMatches]);
 
   const toggleScope = (scope: SearchScope) => {
     let next: string[];
@@ -189,6 +210,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
     }
     next = [...new Set(next)];
     setSelectedScopeIds(next);
+    onRouteChange?.(query, next, minKeywordMatches);
     if (status === 'done' && query.trim()) void runSearch(next);
   };
 
@@ -235,18 +257,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
           </div>
 
           <form
-            onSubmit={(event) => { event.preventDefault(); void runSearch(); }}
+            onSubmit={(event) => { event.preventDefault(); onRouteChange?.(query, selectedScopeIds, minKeywordMatches); void runSearch(); }}
             className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#191919] px-4 py-3 focus-within:border-blue-500/60"
           >
             <Search size={17} className="shrink-0 text-neutral-500" />
             <input
               ref={inputRef}
               value={query}
-              onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }}
+              onChange={(event) => {
+                const nextQuery = event.target.value;
+                const nextKeywords = parseCommaSeparatedKeywords(nextQuery);
+                setQuery(nextQuery);
+                setCurrentPage(1);
+                onRouteChange?.(nextQuery, selectedScopeIds, nextKeywords.length > 1 ? nextKeywords.length : 1);
+              }}
               placeholder="Search text, a topic, or an exact phrase"
               className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-neutral-600"
             />
-            {query && <button type="button" onClick={() => { setQuery(''); setResults([]); setCurrentPage(1); setStatus('idle'); }} aria-label="Clear query" className="text-neutral-500 hover:text-white"><X size={15} /></button>}
+            {query && <button type="button" onClick={() => { setQuery(''); setResults([]); setCurrentPage(1); setStatus('idle'); onRouteChange?.('', selectedScopeIds, 1); }} aria-label="Clear query" className="text-neutral-500 hover:text-white"><X size={15} /></button>}
             <button
               type="submit"
               disabled={!query.trim() || status === 'loading'}
@@ -271,7 +299,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
 
               {isFilterOpen && (
                 <div className="absolute left-0 top-full z-20 mt-2 max-h-[55vh] w-72 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
-                  <button onClick={() => { setSelectedScopeIds([]); setIsFilterOpen(false); if (status === 'done') void runSearch([]); }} className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs text-blue-300 hover:bg-white/[0.05]">Search all subjects and folders</button>
+                  <button onClick={() => { setSelectedScopeIds([]); setIsFilterOpen(false); onRouteChange?.(query, [], minKeywordMatches); if (status === 'done') void runSearch([]); }} className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs text-blue-300 hover:bg-white/[0.05]">Search all subjects and folders</button>
                   <div className="space-y-0.5">{scopeTree.map((scope) => renderScope(scope))}</div>
                   <p className="px-3 pb-1 pt-2 text-[10px] text-neutral-600">No selection searches everything. Select a subject or folders to narrow results.</p>
                 </div>
@@ -301,6 +329,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
                       onChange={(event) => {
                         const nextMinimum = Number(event.target.value);
                         setMinKeywordMatches(nextMinimum);
+                        onRouteChange?.(query, selectedScopeIds, nextMinimum);
                         if (status === 'done') void runSearch(selectedScopeIds, nextMinimum);
                       }}
                       aria-label="Minimum matching keywords"
@@ -339,7 +368,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
           {status === 'done' && results.length > 0 && (
             <div className="divide-y divide-white/[0.06]">
               <div className="sticky top-0 z-10 bg-[#111]/95 px-5 py-3 text-xs text-neutral-500 backdrop-blur">
-                Showing {pageStart + 1}–{Math.min(pageStart + RESULTS_PER_PAGE, results.length)} of {results.length} matching pages
+                Showing {pageStart + 1}–{Math.min(pageStart + RESULTS_PER_PAGE, results.length)} of {results.length} matching pages · {totalOccurrences} {totalOccurrences === 1 ? 'occurrence' : 'occurrences'} across selected subjects
               </div>
               {visibleResults.map((result) => {
                 const file = allPdfs.find((pdf) => pdf.id === result.fileId);
@@ -347,7 +376,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, initialQuery, 
                 return (
                   <button
                     key={result.id}
-                    onClick={() => { openPdf(file, result.page, query.trim()); onClose(); }}
+                    onClick={() => { openPdf(file, result.page, query.trim(), keywordTerms.length > 1 ? minKeywordMatches : 1); onClose(); }}
                     className="group flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.04]"
                   >
                     <FileText size={16} className="mt-0.5 shrink-0 text-blue-300/80" />

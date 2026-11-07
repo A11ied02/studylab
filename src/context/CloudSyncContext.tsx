@@ -22,6 +22,17 @@ interface CloudSyncContextValue {
 }
 
 const CloudSyncContext = createContext<CloudSyncContextValue | undefined>(undefined);
+const GUEST_CLOUD_SYNC: CloudSyncContextValue = {
+  intervalSeconds: DEFAULT_SYNC_INTERVAL,
+  setIntervalSeconds: () => {},
+  status: 'synced',
+  lastSyncedAt: null,
+  error: '',
+  hasUnsyncedChanges: false,
+  syncNow: async () => true,
+  allowNextNavigation: () => {},
+  deleteCloudWorkspace: async () => {},
+};
 
 const readInterval = (): number => {
   const saved = Number(localStorage.getItem(SYNC_INTERVAL_KEY));
@@ -178,7 +189,6 @@ export const CloudSyncProvider: React.FC<{
 
 export const useCloudSync = (): CloudSyncContextValue => {
   const context = useContext(CloudSyncContext);
-  if (!context) throw new Error('useCloudSync must be used within CloudSyncProvider');
-  return context;
+  return context ?? GUEST_CLOUD_SYNC;
 };
 

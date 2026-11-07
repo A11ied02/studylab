@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import {
@@ -60,17 +60,22 @@ export const PdfViewer: React.FC<{
   initialPage?: number;
   initialSearchQuery?: string;
   initialSearchPage?: number;
+  initialMinKeywordMatches?: number;
+  onRouteChange?: (page: number, query: string, minKeywordMatches: number) => void;
   onClose: () => void;
 }> = ({
   file,
   initialPage = 1,
   initialSearchQuery = '',
   initialSearchPage = initialPage,
+  initialMinKeywordMatches = 1,
+  onRouteChange,
   onClose,
 }) => {
   const { getAssetUrl } = useLibrary();
   const pdfUrl = getAssetUrl(file.path);
   const pdfWorkerUrl = getAssetUrl('pdf.worker.min.mjs');
+  const isHindiPdf = file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLowerCase() === 'hindi';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -85,6 +90,8 @@ export const PdfViewer: React.FC<{
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2]));
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
+  const [minKeywordMatches, setMinKeywordMatches] = useState(initialMinKeywordMatches);
+  const [isKeywordSettingsOpen, setIsKeywordSettingsOpen] = useState(false);
   const [findMatches, setFindMatches] = useState<FindOccurrence[]>([]);
   const [findPageRanges, setFindPageRanges] = useState<Map<number, TextRange[]>>(new Map());
   const [activeFindIndex, setActiveFindIndex] = useState(0);
@@ -92,6 +99,17 @@ export const PdfViewer: React.FC<{
   const [findError, setFindError] = useState('');
   const findInputRef = useRef<HTMLInputElement>(null);
   const findRequestId = useRef(0);
+  const keywordTerms = useMemo(() => parseCommaSeparatedKeywords(findQuery), [findQuery]);
+  const keywordSignature = keywordTerms.join('\u0000');
+  const previousKeywordSignatureRef = useRef(keywordSignature);
+
+  useEffect(() => {
+    if (previousKeywordSignatureRef.current === keywordSignature) return;
+    previousKeywordSignatureRef.current = keywordSignature;
+    const initialQueryIsActive = findQuery.trim() === initialSearchQuery.trim() && Boolean(initialSearchQuery.trim());
+    setMinKeywordMatches(initialQueryIsActive ? initialMinKeywordMatches : Math.max(1, keywordTerms.length));
+    setIsKeywordSettingsOpen(false);
+  }, [keywordSignature, keywordTerms.length, findQuery, initialSearchQuery, initialMinKeywordMatches]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +154,12 @@ export const PdfViewer: React.FC<{
     return () => obs.disconnect();
   }, [pagesMeta, numPages]);
 
+  useEffect(() => {
+    if (!pdfDoc) return;
+    const timeout = window.setTimeout(() => onRouteChange?.(currentPage, findQuery, minKeywordMatches), 180);
+    return () => window.clearTimeout(timeout);
+  }, [pdfDoc, currentPage, findQuery, minKeywordMatches, onRouteChange]);
+
   const handleFitWidth = useCallback(() => {
     if (!containerRef.current || !pagesMeta.length) return;
     const w = containerRef.current.clientWidth - 48;
@@ -176,11 +200,13 @@ export const PdfViewer: React.FC<{
     setCurrentPage(initialPage);
     setVisiblePages(new Set([initialPage, initialPage + 1]));
     setFindQuery(initialSearchQuery);
+    setMinKeywordMatches(initialMinKeywordMatches);
+    setIsKeywordSettingsOpen(false);
     setFindOpen(Boolean(initialSearchQuery.trim()));
     setFindMatches([]);
     setFindPageRanges(new Map());
     setFindError('');
-  }, [file.id, initialPage, initialSearchQuery]);
+  }, [file.id, initialPage, initialSearchQuery, initialMinKeywordMatches]);
 
   useEffect(() => {
     if (!pagesMeta.length || !containerRef.current) return;
@@ -198,9 +224,13 @@ export const PdfViewer: React.FC<{
     scrollToPage(match.page);
   };
 
-  const searchPages = useCallback(async (rawTerm: string, pageNumbers: number[]) => {
+  const searchPages = useCallback(async (rawTerm: string, pageNumbers: number[], requiredKeywordMatches = 1) => {
     const term = rawTerm.trim();
     if (!term) return;
+    if (isHindiPdf) {
+      setFindError('Feature not available for this language.');
+      return;
+    }
     if (!pdfDoc) {
       setFindError('The PDF is still loading. Try again in a moment.');
       return;
@@ -220,7 +250,9 @@ export const PdfViewer: React.FC<{
         const content = await page.getTextContent();
         const textItems = content.items.filter((item): item is typeof item & { str: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0);
         const pageText = textItems.map((item) => item.str).join(' ');
-        const foundRanges = (keywords.length ? keywords.flatMap((keyword) => findNormalizedTextRanges(pageText, keyword)) : findNormalizedTextRanges(pageText, term))
+        const keywordRanges = keywords.map((keyword) => findNormalizedTextRanges(pageText, keyword));
+        if (keywords.length > 1 && keywordRanges.filter((ranges) => ranges.length > 0).length < Math.min(keywords.length, requiredKeywordMatches)) continue;
+        const foundRanges = (keywords.length ? keywordRanges.flat() : findNormalizedTextRanges(pageText, term))
           .sort((a, b) => a.start - b.start || a.end - b.end);
         const ranges = foundRanges.reduce<TextRange[]>((merged, range) => {
           const previous = merged[merged.length - 1];
@@ -250,20 +282,32 @@ export const PdfViewer: React.FC<{
     } finally {
       if (requestId === findRequestId.current) setFindLoading(false);
     }
-  }, [pdfDoc, initialSearchPage]);
+  }, [pdfDoc, initialSearchPage, isHindiPdf]);
 
   const runDocumentFind = (event: React.FormEvent) => {
     event.preventDefault();
-    if (findQuery.trim()) void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1));
+    if (isHindiPdf) {
+      setFindError('Feature not available for this language.');
+      return;
+    }
+    if (findQuery.trim()) void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1), minKeywordMatches);
   };
 
   useEffect(() => {
+    if (isHindiPdf) {
+      if (initialSearchQuery.trim()) {
+        setFindOpen(true);
+        setFindQuery(initialSearchQuery);
+      }
+      setFindError('Feature not available for this language.');
+      return;
+    }
     if (!pdfDoc || !initialSearchQuery.trim()) return;
     setFindOpen(true);
     setFindQuery(initialSearchQuery);
-    void searchPages(initialSearchQuery, [Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages))]);
+    void searchPages(initialSearchQuery, [Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages))], initialMinKeywordMatches);
     window.setTimeout(() => findInputRef.current?.focus(), 0);
-  }, [pdfDoc, file.id, initialSearchQuery, initialSearchPage, searchPages]);
+  }, [pdfDoc, file.id, initialSearchQuery, initialSearchPage, initialMinKeywordMatches, searchPages, isHindiPdf]);
 
   const handlePdfCopy = (event: React.ClipboardEvent<HTMLDivElement>) => {
     if (file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLocaleLowerCase() !== 'hindi') return;
@@ -298,7 +342,7 @@ export const PdfViewer: React.FC<{
   };
 
   const handleShare = async () => {
-    const url = new URL(pdfUrl, window.location.href).toString();
+    const url = window.location.href;
     if (navigator.share) {
       try { await navigator.share({ title: file.title, url }); return; } catch {}
     }
@@ -330,6 +374,11 @@ export const PdfViewer: React.FC<{
 
         <button
           onClick={() => {
+            if (isHindiPdf) {
+              setFindOpen(true);
+              setFindError('Feature not available for this language.');
+              return;
+            }
             setFindOpen((open) => !open);
             if (!findOpen) window.setTimeout(() => findInputRef.current?.focus(), 0);
           }}
@@ -404,22 +453,59 @@ export const PdfViewer: React.FC<{
           <input
             ref={findInputRef}
             value={findQuery}
+            disabled={isHindiPdf}
             onChange={(event) => {
+              const nextQuery = event.target.value;
               findRequestId.current += 1;
-              setFindQuery(event.target.value);
+              setFindQuery(nextQuery);
               setFindMatches([]);
               setFindPageRanges(new Map());
               setFindError('');
               setFindLoading(false);
+              onRouteChange?.(currentPage, nextQuery, minKeywordMatches);
             }}
             placeholder="Find in this PDF"
             aria-label="Find in this PDF"
             className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs text-white outline-none placeholder:text-neutral-600"
           />
           {findMatches.length > 0 && <span className="shrink-0 text-[10px] text-neutral-500">{activeFindIndex + 1}/{findMatches.length}</span>}
-          <button type="submit" aria-label="Search this PDF" disabled={findLoading || !findQuery.trim()} className="rounded-md p-1.5 text-blue-300 hover:bg-white/5 disabled:opacity-40">
+          <button type="submit" aria-label="Search this PDF" disabled={isHindiPdf || findLoading || !findQuery.trim()} className="rounded-md p-1.5 text-blue-300 hover:bg-white/5 disabled:opacity-40">
             {findLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
           </button>
+          {keywordTerms.length > 1 && !isHindiPdf && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsKeywordSettingsOpen((open) => !open)}
+                aria-label="Set keyword match threshold"
+                aria-expanded={isKeywordSettingsOpen}
+                className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] font-bold ${isKeywordSettingsOpen ? 'border-blue-400/40 bg-blue-500/15 text-blue-200' : 'border-white/10 text-neutral-300 hover:bg-white/5'}`}
+              >K</button>
+              {isKeywordSettingsOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-white/10 bg-[#1a1a1a] p-4 shadow-xl">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <span className="text-xs font-medium text-neutral-200">Keywords that must match</span>
+                    <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-semibold tabular-nums text-blue-200">{Math.min(minKeywordMatches, keywordTerms.length)} / {keywordTerms.length}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={keywordTerms.length}
+                    value={Math.min(minKeywordMatches, keywordTerms.length)}
+                    onChange={(event) => {
+                      const nextMinimum = Number(event.target.value);
+                      setMinKeywordMatches(nextMinimum);
+                      onRouteChange?.(currentPage, findQuery, nextMinimum);
+                      void searchPages(findQuery, Array.from({ length: pdfDoc?.numPages ?? 0 }, (_, index) => index + 1), nextMinimum);
+                    }}
+                    aria-label="Minimum matching keywords"
+                    className="w-full accent-blue-500"
+                  />
+                  <div className="mt-1 flex justify-between text-[10px] text-neutral-500"><span>1 keyword</span><span>All {keywordTerms.length}</span></div>
+                </div>
+              )}
+            </div>
+          )}
           <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={!findMatches.length} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
           <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={!findMatches.length} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
           <button type="button" onClick={() => setFindOpen(false)} aria-label="Close find" className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={14} /></button>

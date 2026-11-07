@@ -517,7 +517,7 @@ export const SettingsModal: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold text-white mb-1">Information Technology (IT) Folders</h2>
                 <p className="text-sm text-neutral-400">
-                  Filled folder icons for Part A and Part B units.
+                  Part A folders always use the blue gradient. Choose a gradient for Part B.
                 </p>
               </div>
 
@@ -529,8 +529,8 @@ export const SettingsModal: React.FC = () => {
                     <svg viewBox="0 0 24 24" className="w-full h-full">
                       <defs>
                         <linearGradient id="prev_it_a" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor={itGradients.partA[0]} />
-                          <stop offset="100%" stopColor={itGradients.partA[1]} />
+                          <stop offset="0%" stopColor={DEFAULT_IT_GRADIENTS.partA[0]} />
+                          <stop offset="100%" stopColor={DEFAULT_IT_GRADIENTS.partA[1]} />
                         </linearGradient>
                       </defs>
                       <path
@@ -564,19 +564,9 @@ export const SettingsModal: React.FC = () => {
 
               {/* Color Selectors */}
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-                    Part A Gradient
-                  </label>
-                  <select
-                    value={JSON.stringify(itGradients.partA)}
-                    onChange={(e) => setItGradients({ ...itGradients, partA: JSON.parse(e.target.value) })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg-card border border-bg-border text-white text-sm outline-none focus:border-[#4285f4]"
-                  >
-                    {GRADIENT_PRESETS.map((g) => (
-                      <option key={g.label} value={JSON.stringify(g.value)}>{g.label}</option>
-                    ))}
-                  </select>
+                <div className="rounded-xl border border-bg-border bg-bg-card px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-neutral-300">Part A Gradient</p>
+                  <p className="mt-1 text-xs text-neutral-500">Consistent blue gradient across every Part A folder.</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -595,10 +585,10 @@ export const SettingsModal: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setItGradients(DEFAULT_IT_GRADIENTS)}
+                  onClick={() => setItGradients({ ...itGradients, partB: DEFAULT_IT_GRADIENTS.partB })}
                   className="text-xs text-[#4285f4] hover:underline pt-1"
                 >
-                  Reset IT Gradients to Defaults
+                  Reset Part B Gradient to Default
                 </button>
               </div>
             </div>

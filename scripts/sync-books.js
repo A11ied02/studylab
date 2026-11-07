@@ -62,20 +62,20 @@ const MATHS_CHAPTER_NAMES = {
 };
 
 const HINDI_SPARSH_NAMES = {
-  "01.pdf": "साखी (कबीर)",
-  "02.pdf": "पद (मीरा)",
-  "03.pdf": "मनुष्यता (मैथिलीशरण गुप्त)",
-  "04.pdf": "पर्वत प्रदेश में पावस (सुमित्रानंदन पंत)",
-  "05.pdf": "तोप (वीरेन डंगवाल)",
-  "06.pdf": "कर चले हम फ़िदा (कैफ़ी आज़मी)",
-  "07.pdf": "आत्मत्राण (रवींद्रनाथ ठाकुर)",
-  "08.pdf": "बड़े भाई साहब (प्रेमचंद)",
-  "09.pdf": "डायरी का एक पन्ना (सीताराम सेकसरिया)",
-  "10.pdf": "ततांरा-वामीरो कथा (लीलाधर मंडलोई)",
-  "11.pdf": "तीसरी कसम के शिल्पकार शैलेंद्र (प्रहलाद अग्रवाल)",
-  "12.pdf": "अब कहाँ दूसरे के दुख से दुखी होने वाले (निदा फ़ाज़ली)",
-  "13.pdf": "पतझर में टूटी पत्तियाँ - झेन की देन (रवींद्र केलेकर)",
-  "14.pdf": "कारतूस (हबीब तनवीर)"
+  "01.pdf": "Sakhi (Kabir)",
+  "02.pdf": "Pad (Meera)",
+  "03.pdf": "Manushyata (Maithilisharan Gupt)",
+  "04.pdf": "Parvat Pradesh Mein Pavas (Sumitranandan Pant)",
+  "05.pdf": "Top (Virendra Dangwal)",
+  "06.pdf": "Kar Chale Hum Fida (Kaifi Azmi)",
+  "07.pdf": "Aatmatraan (Rabindranath Thakur)",
+  "08.pdf": "Bade Bhai Sahab (Premchand)",
+  "09.pdf": "Diary Ka Ek Panna (Sitaram Seksaria)",
+  "10.pdf": "Tatara-Vamiro Katha (Liladhar Mandloi)",
+  "11.pdf": "Teesri Kasam Ke Shilpkar Shailendra (Prahlad Agrawal)",
+  "12.pdf": "Ab Kahan Doosre Ke Dukh Se Dukhi Hone Wale (Nida Fazli)",
+  "13.pdf": "Patjhar Mein Tooti Pattiyan - Zen Ki Den (Ravindra Kelekar)",
+  "14.pdf": "Kartus (Habib Tanvir)"
 };
 
 // Cover mapping based on folder relative path (PNG/JPEG raster files)
@@ -126,6 +126,15 @@ function scanDir(dir, relPath = '') {
     const stat = fs.statSync(fullPath);
 
     if (stat.isDirectory()) {
+      const normalizedItemPath = itemRelPath.replace(/\\/g, '/');
+      if (normalizedItemPath === 'IT/Part B/Chapters') {
+        // Keep the Part B chapter PDFs directly on the Part B page instead of nesting them.
+        const flattenedChapters = scanDir(fullPath, 'IT/Part B');
+        files.push(...flattenedChapters.files);
+        subfolders.push(...flattenedChapters.subfolders);
+        continue;
+      }
+
       const child = scanDir(fullPath, itemRelPath);
       // Only include subfolder if it has files or non-empty children
       if (child.files.length > 0 || child.subfolders.length > 0) {
@@ -228,6 +237,16 @@ function scanDir(dir, relPath = '') {
         isEconomicsException: isEconomics
       });
     }
+  }
+
+  if (relPath.replace(/\\/g, '/') === 'IT/Part A') {
+    const folderOrder = new Map([
+      ['Writer', 0],
+      ['Calc', 1],
+      ['Base (Database)', 2],
+      ['Workplace Safety', 3],
+    ]);
+    subfolders.sort((left, right) => (folderOrder.get(left.name) ?? 99) - (folderOrder.get(right.name) ?? 99));
   }
 
   // Sort files naturally by chapter number

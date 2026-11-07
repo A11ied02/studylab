@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T08:24:56.749Z",
+  "generatedAt": "2026-11-07T09:17:15.796Z",
   "sourceDirectory": "Bundled book library",
   "totalPdfs": 102,
   "subjects": [
@@ -841,7 +841,7 @@
             {
               "id": "Hindi/Sparsh/01.pdf",
               "filename": "01.pdf",
-              "title": "01 - साखी (कबीर)",
+              "title": "01 - Sakhi (Kabir)",
               "path": "books/Hindi/Sparsh/01.pdf",
               "rawPath": "Hindi/Sparsh/01.pdf",
               "sizeBytes": 1354948,
@@ -851,7 +851,7 @@
             {
               "id": "Hindi/Sparsh/02.pdf",
               "filename": "02.pdf",
-              "title": "02 - पद (मीरा)",
+              "title": "02 - Pad (Meera)",
               "path": "books/Hindi/Sparsh/02.pdf",
               "rawPath": "Hindi/Sparsh/02.pdf",
               "sizeBytes": 1123727,
@@ -861,7 +861,7 @@
             {
               "id": "Hindi/Sparsh/03.pdf",
               "filename": "03.pdf",
-              "title": "03 - मनुष्यता (मैथिलीशरण गुप्त)",
+              "title": "03 - Manushyata (Maithilisharan Gupt)",
               "path": "books/Hindi/Sparsh/03.pdf",
               "rawPath": "Hindi/Sparsh/03.pdf",
               "sizeBytes": 1212060,
@@ -871,7 +871,7 @@
             {
               "id": "Hindi/Sparsh/04.pdf",
               "filename": "04.pdf",
-              "title": "04 - पर्वत प्रदेश में पावस (सुमित्रानंदन पंत)",
+              "title": "04 - Parvat Pradesh Mein Pavas (Sumitranandan Pant)",
               "path": "books/Hindi/Sparsh/04.pdf",
               "rawPath": "Hindi/Sparsh/04.pdf",
               "sizeBytes": 1159929,
@@ -881,7 +881,7 @@
             {
               "id": "Hindi/Sparsh/05.pdf",
               "filename": "05.pdf",
-              "title": "05 - तोप (वीरेन डंगवाल)",
+              "title": "05 - Top (Virendra Dangwal)",
               "path": "books/Hindi/Sparsh/05.pdf",
               "rawPath": "Hindi/Sparsh/05.pdf",
               "sizeBytes": 1036148,
@@ -891,7 +891,7 @@
             {
               "id": "Hindi/Sparsh/06.pdf",
               "filename": "06.pdf",
-              "title": "06 - कर चले हम फ़िदा (कैफ़ी आज़मी)",
+              "title": "06 - Kar Chale Hum Fida (Kaifi Azmi)",
               "path": "books/Hindi/Sparsh/06.pdf",
               "rawPath": "Hindi/Sparsh/06.pdf",
               "sizeBytes": 1087751,
@@ -901,7 +901,7 @@
             {
               "id": "Hindi/Sparsh/07.pdf",
               "filename": "07.pdf",
-              "title": "07 - आत्मत्राण (रवींद्रनाथ ठाकुर)",
+              "title": "07 - Aatmatraan (Rabindranath Thakur)",
               "path": "books/Hindi/Sparsh/07.pdf",
               "rawPath": "Hindi/Sparsh/07.pdf",
               "sizeBytes": 1277690,
@@ -911,7 +911,7 @@
             {
               "id": "Hindi/Sparsh/08.pdf",
               "filename": "08.pdf",
-              "title": "08 - बड़े भाई साहब (प्रेमचंद)",
+              "title": "08 - Bade Bhai Sahab (Premchand)",
               "path": "books/Hindi/Sparsh/08.pdf",
               "rawPath": "Hindi/Sparsh/08.pdf",
               "sizeBytes": 2088386,
@@ -921,7 +921,7 @@
             {
               "id": "Hindi/Sparsh/09.pdf",
               "filename": "09.pdf",
-              "title": "09 - डायरी का एक पन्ना (सीताराम सेकसरिया)",
+              "title": "09 - Diary Ka Ek Panna (Sitaram Seksaria)",
               "path": "books/Hindi/Sparsh/09.pdf",
               "rawPath": "Hindi/Sparsh/09.pdf",
               "sizeBytes": 1394757,
@@ -931,7 +931,7 @@
             {
               "id": "Hindi/Sparsh/10.pdf",
               "filename": "10.pdf",
-              "title": "10 - ततांरा-वामीरो कथा (लीलाधर मंडलोई)",
+              "title": "10 - Tatara-Vamiro Katha (Liladhar Mandloi)",
               "path": "books/Hindi/Sparsh/10.pdf",
               "rawPath": "Hindi/Sparsh/10.pdf",
               "sizeBytes": 1492464,
@@ -941,7 +941,7 @@
             {
               "id": "Hindi/Sparsh/11.pdf",
               "filename": "11.pdf",
-              "title": "11 - तीसरी कसम के शिल्पकार शैलेंद्र (प्रहलाद अग्रवाल)",
+              "title": "11 - Teesri Kasam Ke Shilpkar Shailendra (Prahlad Agrawal)",
               "path": "books/Hindi/Sparsh/11.pdf",
               "rawPath": "Hindi/Sparsh/11.pdf",
               "sizeBytes": 1375055,
@@ -951,7 +951,7 @@
             {
               "id": "Hindi/Sparsh/12.pdf",
               "filename": "12.pdf",
-              "title": "12 - अब कहाँ दूसरे के दुख से दुखी होने वाले (निदा फ़ाज़ली)",
+              "title": "12 - Ab Kahan Doosre Ke Dukh Se Dukhi Hone Wale (Nida Fazli)",
               "path": "books/Hindi/Sparsh/12.pdf",
               "rawPath": "Hindi/Sparsh/12.pdf",
               "sizeBytes": 1355776,
@@ -961,7 +961,7 @@
             {
               "id": "Hindi/Sparsh/13.pdf",
               "filename": "13.pdf",
-              "title": "13 - पतझर में टूटी पत्तियाँ - झेन की देन (रवींद्र केलेकर)",
+              "title": "13 - Patjhar Mein Tooti Pattiyan - Zen Ki Den (Ravindra Kelekar)",
               "path": "books/Hindi/Sparsh/13.pdf",
               "rawPath": "Hindi/Sparsh/13.pdf",
               "sizeBytes": 1466922,
@@ -971,7 +971,7 @@
             {
               "id": "Hindi/Sparsh/14.pdf",
               "filename": "14.pdf",
-              "title": "14 - कारतूस (हबीब तनवीर)",
+              "title": "14 - Kartus (Habib Tanvir)",
               "path": "books/Hindi/Sparsh/14.pdf",
               "rawPath": "Hindi/Sparsh/14.pdf",
               "sizeBytes": 1503932,
@@ -997,6 +997,96 @@
           "displayName": "Part A",
           "cover": "covers/ncert/it-class-x.png",
           "subfolders": [
+            {
+              "id": "IT/Part A/Writer",
+              "name": "Writer",
+              "path": "IT/Part A/Writer",
+              "displayName": "Documentation (Writer)",
+              "cover": "covers/ncert/it-class-x.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "filename": "01 - Introduction to Styles.pdf",
+                  "title": "01 - Introduction to Styles",
+                  "path": "books/IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "rawPath": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
+                  "sizeBytes": 4338490,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/01 - Introduction to Styles.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Writer/02 - Working with Images.pdf",
+                  "filename": "02 - Working with Images.pdf",
+                  "title": "02 - Working with Images",
+                  "path": "books/IT/Part A/Writer/02 - Working with Images.pdf",
+                  "rawPath": "IT/Part A/Writer/02 - Working with Images.pdf",
+                  "sizeBytes": 5528871,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/02 - Working with Images.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "filename": "03 - Advanced Features of Writer.pdf",
+                  "title": "03 - Advanced Features of Writer",
+                  "path": "books/IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "rawPath": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
+                  "sizeBytes": 8274501,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/03 - Advanced Features of Writer.png",
+                  "isEconomicsException": false
+                }
+              ]
+            },
+            {
+              "id": "IT/Part A/Calc",
+              "name": "Calc",
+              "path": "IT/Part A/Calc",
+              "displayName": "Spreadsheet (Calc)",
+              "cover": "covers/ncert/it-class-x.png",
+              "subfolders": [],
+              "files": [
+                {
+                  "id": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "filename": "04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "title": "04 - Analyse Data using Scenarios and Goal Seek",
+                  "path": "books/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "rawPath": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
+                  "sizeBytes": 4310647,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "filename": "05 - Using Macros in Spreadsheet.pdf",
+                  "title": "05 - Using Macros in Spreadsheet",
+                  "path": "books/IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "rawPath": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
+                  "sizeBytes": 3048025,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/05 - Using Macros in Spreadsheet.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "filename": "06 - Linking Spreadsheet Data.pdf",
+                  "title": "06 - Linking Spreadsheet Data",
+                  "path": "books/IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "rawPath": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
+                  "sizeBytes": 3362825,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/06 - Linking Spreadsheet Data.png",
+                  "isEconomicsException": false
+                },
+                {
+                  "id": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "filename": "07 - Share and Review a Spreadsheet.pdf",
+                  "title": "07 - Share and Review a Spreadsheet",
+                  "path": "books/IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "rawPath": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
+                  "sizeBytes": 2950044,
+                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/07 - Share and Review a Spreadsheet.png",
+                  "isEconomicsException": false
+                }
+              ]
+            },
             {
               "id": "IT/Part A/Base (Database)",
               "name": "Base (Database)",
@@ -1058,56 +1148,6 @@
               ]
             },
             {
-              "id": "IT/Part A/Calc",
-              "name": "Calc",
-              "path": "IT/Part A/Calc",
-              "displayName": "Spreadsheet (Calc)",
-              "cover": "covers/ncert/it-class-x.png",
-              "subfolders": [],
-              "files": [
-                {
-                  "id": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
-                  "filename": "04 - Analyse Data using Scenarios and Goal Seek.pdf",
-                  "title": "04 - Analyse Data using Scenarios and Goal Seek",
-                  "path": "books/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
-                  "rawPath": "IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.pdf",
-                  "sizeBytes": 4310647,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/04 - Analyse Data using Scenarios and Goal Seek.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
-                  "filename": "05 - Using Macros in Spreadsheet.pdf",
-                  "title": "05 - Using Macros in Spreadsheet",
-                  "path": "books/IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
-                  "rawPath": "IT/Part A/Calc/05 - Using Macros in Spreadsheet.pdf",
-                  "sizeBytes": 3048025,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/05 - Using Macros in Spreadsheet.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
-                  "filename": "06 - Linking Spreadsheet Data.pdf",
-                  "title": "06 - Linking Spreadsheet Data",
-                  "path": "books/IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
-                  "rawPath": "IT/Part A/Calc/06 - Linking Spreadsheet Data.pdf",
-                  "sizeBytes": 3362825,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/06 - Linking Spreadsheet Data.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
-                  "filename": "07 - Share and Review a Spreadsheet.pdf",
-                  "title": "07 - Share and Review a Spreadsheet",
-                  "path": "books/IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
-                  "rawPath": "IT/Part A/Calc/07 - Share and Review a Spreadsheet.pdf",
-                  "sizeBytes": 2950044,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Calc/07 - Share and Review a Spreadsheet.png",
-                  "isEconomicsException": false
-                }
-              ]
-            },
-            {
               "id": "IT/Part A/Workplace Safety",
               "name": "Workplace Safety",
               "path": "IT/Part A/Workplace Safety",
@@ -1146,46 +1186,6 @@
                   "isEconomicsException": false
                 }
               ]
-            },
-            {
-              "id": "IT/Part A/Writer",
-              "name": "Writer",
-              "path": "IT/Part A/Writer",
-              "displayName": "Documentation (Writer)",
-              "cover": "covers/ncert/it-class-x.png",
-              "subfolders": [],
-              "files": [
-                {
-                  "id": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
-                  "filename": "01 - Introduction to Styles.pdf",
-                  "title": "01 - Introduction to Styles",
-                  "path": "books/IT/Part A/Writer/01 - Introduction to Styles.pdf",
-                  "rawPath": "IT/Part A/Writer/01 - Introduction to Styles.pdf",
-                  "sizeBytes": 4338490,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/01 - Introduction to Styles.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part A/Writer/02 - Working with Images.pdf",
-                  "filename": "02 - Working with Images.pdf",
-                  "title": "02 - Working with Images",
-                  "path": "books/IT/Part A/Writer/02 - Working with Images.pdf",
-                  "rawPath": "IT/Part A/Writer/02 - Working with Images.pdf",
-                  "sizeBytes": 5528871,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/02 - Working with Images.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
-                  "filename": "03 - Advanced Features of Writer.pdf",
-                  "title": "03 - Advanced Features of Writer",
-                  "path": "books/IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
-                  "rawPath": "IT/Part A/Writer/03 - Advanced Features of Writer.pdf",
-                  "sizeBytes": 8274501,
-                  "thumbnailUrl": "thumbnails/IT/Part A/Writer/03 - Advanced Features of Writer.png",
-                  "isEconomicsException": false
-                }
-              ]
             }
           ],
           "files": []
@@ -1196,69 +1196,59 @@
           "path": "IT/Part B",
           "displayName": "Part B",
           "cover": "covers/ncert/it-class-x.png",
-          "subfolders": [
+          "subfolders": [],
+          "files": [
             {
-              "id": "IT/Part B/Chapters",
-              "name": "Chapters",
-              "path": "IT/Part B/Chapters",
-              "displayName": "Vocational Chapters",
-              "cover": "covers/ncert/it-class-x.png",
-              "subfolders": [],
-              "files": [
-                {
-                  "id": "IT/Part B/Chapters/01 - Communication Skills.pdf",
-                  "filename": "01 - Communication Skills.pdf",
-                  "title": "01 - Communication Skills",
-                  "path": "books/IT/Part B/Chapters/01 - Communication Skills.pdf",
-                  "rawPath": "IT/Part B/Chapters/01 - Communication Skills.pdf",
-                  "sizeBytes": 4842575,
-                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/01 - Communication Skills.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part B/Chapters/02 - Self-management Skills.pdf",
-                  "filename": "02 - Self-management Skills.pdf",
-                  "title": "02 - Self-management Skills",
-                  "path": "books/IT/Part B/Chapters/02 - Self-management Skills.pdf",
-                  "rawPath": "IT/Part B/Chapters/02 - Self-management Skills.pdf",
-                  "sizeBytes": 2926441,
-                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/02 - Self-management Skills.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
-                  "filename": "03 - Information and Communication Technology Skills.pdf",
-                  "title": "03 - Information and Communication Technology Skills",
-                  "path": "books/IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
-                  "rawPath": "IT/Part B/Chapters/03 - Information and Communication Technology Skills.pdf",
-                  "sizeBytes": 3463767,
-                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/03 - Information and Communication Technology Skills.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
-                  "filename": "04 - Entrepreneurial Skills.pdf",
-                  "title": "04 - Entrepreneurial Skills",
-                  "path": "books/IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
-                  "rawPath": "IT/Part B/Chapters/04 - Entrepreneurial Skills.pdf",
-                  "sizeBytes": 2418548,
-                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/04 - Entrepreneurial Skills.png",
-                  "isEconomicsException": false
-                },
-                {
-                  "id": "IT/Part B/Chapters/05 - Green Skills.pdf",
-                  "filename": "05 - Green Skills.pdf",
-                  "title": "05 - Green Skills",
-                  "path": "books/IT/Part B/Chapters/05 - Green Skills.pdf",
-                  "rawPath": "IT/Part B/Chapters/05 - Green Skills.pdf",
-                  "sizeBytes": 1502544,
-                  "thumbnailUrl": "thumbnails/IT/Part B/Chapters/05 - Green Skills.png",
-                  "isEconomicsException": false
-                }
-              ]
+              "id": "IT/Part B/01 - Communication Skills.pdf",
+              "filename": "01 - Communication Skills.pdf",
+              "title": "01 - Communication Skills",
+              "path": "books/IT/Part B/01 - Communication Skills.pdf",
+              "rawPath": "IT/Part B/01 - Communication Skills.pdf",
+              "sizeBytes": 4842575,
+              "thumbnailUrl": "thumbnails/IT/Part B/01 - Communication Skills.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "IT/Part B/02 - Self-management Skills.pdf",
+              "filename": "02 - Self-management Skills.pdf",
+              "title": "02 - Self-management Skills",
+              "path": "books/IT/Part B/02 - Self-management Skills.pdf",
+              "rawPath": "IT/Part B/02 - Self-management Skills.pdf",
+              "sizeBytes": 2926441,
+              "thumbnailUrl": "thumbnails/IT/Part B/02 - Self-management Skills.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "IT/Part B/03 - Information and Communication Technology Skills.pdf",
+              "filename": "03 - Information and Communication Technology Skills.pdf",
+              "title": "03 - Information and Communication Technology Skills",
+              "path": "books/IT/Part B/03 - Information and Communication Technology Skills.pdf",
+              "rawPath": "IT/Part B/03 - Information and Communication Technology Skills.pdf",
+              "sizeBytes": 3463767,
+              "thumbnailUrl": "thumbnails/IT/Part B/03 - Information and Communication Technology Skills.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "IT/Part B/04 - Entrepreneurial Skills.pdf",
+              "filename": "04 - Entrepreneurial Skills.pdf",
+              "title": "04 - Entrepreneurial Skills",
+              "path": "books/IT/Part B/04 - Entrepreneurial Skills.pdf",
+              "rawPath": "IT/Part B/04 - Entrepreneurial Skills.pdf",
+              "sizeBytes": 2418548,
+              "thumbnailUrl": "thumbnails/IT/Part B/04 - Entrepreneurial Skills.png",
+              "isEconomicsException": false
+            },
+            {
+              "id": "IT/Part B/05 - Green Skills.pdf",
+              "filename": "05 - Green Skills.pdf",
+              "title": "05 - Green Skills",
+              "path": "books/IT/Part B/05 - Green Skills.pdf",
+              "rawPath": "IT/Part B/05 - Green Skills.pdf",
+              "sizeBytes": 1502544,
+              "thumbnailUrl": "thumbnails/IT/Part B/05 - Green Skills.png",
+              "isEconomicsException": false
             }
-          ],
-          "files": []
+          ]
         }
       ],
       "files": []

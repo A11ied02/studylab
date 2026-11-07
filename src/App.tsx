@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { LoaderCircle, X } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { LibraryProvider, useLibrary } from './context/LibraryContext';
 import { FlashcardsProvider } from './context/FlashcardsContext';
@@ -16,36 +17,110 @@ import { CloudSyncProvider } from './context/CloudSyncContext';
 import { FirebaseWorkspace } from './services/firebaseWorkspace';
 import { stableStringify, WorkspaceBackup } from './services/workspaceBackup';
 import { User } from 'firebase/auth';
+import { clearAppRoute, isPdfRoute, parseAppRoute, writeAppRoute } from './services/appRoute';
+import { parseCommaSeparatedKeywords } from './services/searchText';
 
-const AppContent: React.FC = () => {
+interface SearchSeed {
+  query: string;
+  scopeIds: string[];
+  minKeywordMatches: number;
+}
+
+const AppContent: React.FC<{ guestMode?: boolean }> = ({ guestMode = false }) => {
   const {
     activeTab,
     selectedSubject,
+    selectedFolder,
     activePdf,
     activePdfPage,
     activePdfSearchQuery,
     activePdfSearchPage,
+    activePdfMinKeywordMatches,
     closePdf,
+    updatePdfRoute,
+    loading: libraryLoading,
   } = useLibrary();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [initialSearchQuery, setInitialSearchQuery] = useState('');
+  const handlePdfRouteChange = useCallback((page: number, query: string, minimum: number) => {
+    updatePdfRoute(page, query, minimum);
+  }, [updatePdfRoute]);
+  const initialRoute = parseAppRoute();
+  const initialSeed: SearchSeed = {
+    query: initialRoute.query ?? '',
+    scopeIds: initialRoute.scopeIds,
+    minKeywordMatches: initialRoute.minKeywordMatches ?? Math.max(1, parseCommaSeparatedKeywords(initialRoute.query ?? '').length),
+  };
+  const [isSearchOpen, setIsSearchOpen] = useState(Boolean(initialRoute.query && !isPdfRoute(initialRoute)));
+  const [searchSeed, setSearchSeed] = useState<SearchSeed>(initialSeed);
   const [flashcardsQuery, setFlashcardsQuery] = useState('');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const openGlobalSearch = (query = '') => {
-    setInitialSearchQuery(query);
+    const route = parseAppRoute();
+    const basePath = activePdf
+      ? activePdf.rawPath.split('/').slice(0, -1).join('/')
+      : selectedFolder?.path ?? selectedSubject?.path ?? (route.isBooksRoute ? route.path : '');
+    if (activePdf) closePdf();
+    const seed = {
+      query,
+      scopeIds: [],
+      minKeywordMatches: Math.max(1, parseCommaSeparatedKeywords(query).length),
+    };
+    setSearchSeed(seed);
     setIsSearchOpen(true);
+    writeAppRoute({ path: basePath, query, scopeIds: [], minKeywordMatches: seed.minKeywordMatches });
   };
+
+  const closeGlobalSearch = () => {
+    setIsSearchOpen(false);
+    const route = parseAppRoute();
+    // Opening a PDF from a result changes the route before this callback runs; keep that shareable PDF URL intact.
+    if (isPdfRoute(route)) return;
+    if (route.isBooksRoute) writeAppRoute({ path: route.path, scopeIds: [] }, true);
+    else clearAppRoute(true);
+    setSearchSeed({ query: '', scopeIds: [], minKeywordMatches: 1 });
+  };
+
+  const updateSearchRoute = (query: string, scopeIds: string[], minKeywordMatches: number) => {
+    const route = parseAppRoute();
+    const path = route.isBooksRoute && !isPdfRoute(route)
+      ? route.path
+      : selectedFolder?.path ?? selectedSubject?.path ?? '';
+    writeAppRoute({ path, query, scopeIds, minKeywordMatches }, true);
+  };
+
+  useEffect(() => {
+    const syncModalFromRoute = () => {
+      const route = parseAppRoute();
+      if (route.isBooksRoute && route.query && !isPdfRoute(route)) {
+        setSearchSeed({
+          query: route.query,
+          scopeIds: route.scopeIds,
+          minKeywordMatches: route.minKeywordMatches ?? Math.max(1, parseCommaSeparatedKeywords(route.query).length),
+        });
+        setIsSearchOpen(true);
+      } else {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener('popstate', syncModalFromRoute);
+    window.addEventListener('hashchange', syncModalFromRoute);
+    return () => {
+      window.removeEventListener('popstate', syncModalFromRoute);
+      window.removeEventListener('hashchange', syncModalFromRoute);
+    };
+  }, []);
 
   useEffect(() => {
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
+        if (isSearchOpen) return;
         openGlobalSearch();
       }
     };
     window.addEventListener('keydown', handleGlobalSearchShortcut);
     return () => window.removeEventListener('keydown', handleGlobalSearchShortcut);
-  }, []);
+  }, [activePdf, selectedFolder?.path, selectedSubject?.path, closePdf, isSearchOpen]);
 
   /* Decide title shown in TopBar */
   const topBarTitle =
@@ -56,7 +131,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="app-shell relative flex h-screen w-full overflow-hidden bg-bg-base text-txt-primary font-sans">
       {/* Slim icon sidebar */}
-      <Sidebar />
+        <Sidebar guestMode={guestMode} />
 
       {/* Main panel */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -68,6 +143,8 @@ const AppContent: React.FC = () => {
             isGlobalSearchOpen={isSearchOpen}
             flashcardsQuery={flashcardsQuery}
             onFlashcardsSearch={setFlashcardsQuery}
+            guestMode={guestMode}
+            onAuthenticate={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -76,8 +153,8 @@ const AppContent: React.FC = () => {
           {activeTab === 'books' && (
             selectedSubject ? <SubjectView /> : <BooksHome />
           )}
-          {activeTab === 'flashcards' && <FlashcardsView searchQuery={flashcardsQuery} />}
-          {activeTab === 'pyqs'       && <PyqsView />}
+          {!guestMode && activeTab === 'flashcards' && <FlashcardsView searchQuery={flashcardsQuery} />}
+          {!guestMode && activeTab === 'pyqs'       && <PyqsView />}
 
           {/* PDF Viewer overlay */}
           {activePdf && (
@@ -86,14 +163,24 @@ const AppContent: React.FC = () => {
               initialPage={activePdfPage}
               initialSearchQuery={activePdfSearchQuery}
               initialSearchPage={activePdfSearchPage}
+              initialMinKeywordMatches={activePdfMinKeywordMatches}
+              onRouteChange={handlePdfRouteChange}
               onClose={closePdf}
             />
           )}
         </div>
       </div>
 
-      <SettingsModal />
-      <SearchModal isOpen={isSearchOpen} initialQuery={initialSearchQuery} onClose={() => setIsSearchOpen(false)} />
+      {!guestMode && <SettingsModal />}
+      <SearchModal
+        isOpen={isSearchOpen && !libraryLoading}
+        initialQuery={searchSeed.query}
+        initialScopeIds={searchSeed.scopeIds}
+        initialMinKeywordMatches={searchSeed.minKeywordMatches}
+        onClose={closeGlobalSearch}
+        onRouteChange={updateSearchRoute}
+      />
+      {guestMode && isAuthModalOpen && <GoogleAuthModal onClose={() => setIsAuthModalOpen(false)} />}
     </div>
   );
 };
@@ -129,7 +216,7 @@ const GoogleMark = () => (
   </svg>
 );
 
-const LoginScreen: React.FC = () => {
+const GoogleAuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { configured, signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -147,27 +234,38 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#08090c] px-5 text-white">
-      <section className="w-full max-w-md rounded-3xl border border-white/10 bg-[#111318] p-8 shadow-2xl sm:p-10">
-        <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-xl font-bold text-blue-300">S</div>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="auth-title" className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#111318] p-7 text-white shadow-2xl sm:p-9">
+        <button type="button" onClick={onClose} disabled={busy} aria-label="Close sign-in" className="absolute right-4 top-4 rounded-lg p-2 text-neutral-500 hover:bg-white/5 hover:text-white disabled:opacity-40"><X size={17} /></button>
+        <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-xl font-bold text-blue-300">S</div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-300">Studylab</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight">Sign in to continue</h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-400">Use your Google account to open your synced workspace.</p>
+        <h2 id="auth-title" className="mt-3 text-2xl font-bold tracking-tight">Unlock your study workspace</h2>
+        <p className="mt-3 text-sm leading-6 text-neutral-400">Sign in with Google to sync your workspace and use flashcards, PYQs, and settings. You can keep browsing and searching books without signing in.</p>
         <button
           type="button"
           onClick={() => void continueWithGoogle()}
           disabled={busy}
-          className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-4 text-sm font-semibold text-[#202124] transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-70"
+          className="mt-7 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-4 text-sm font-semibold text-[#202124] transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-70"
         >
-          <GoogleMark />
+          {busy ? <LoaderCircle size={18} className="animate-spin" /> : <GoogleMark />}
           {busy ? 'Connecting…' : 'Continue with Google'}
         </button>
         {!configured && <p className="mt-4 text-xs leading-5 text-amber-300">Firebase is not configured. Copy `src/services/.firebase-template` to `src/services/firebase.ts` and paste your Firebase web app config there, or set the VITE_FIREBASE_* values in `.env.local`.</p>}
         {error && <p role="alert" className="mt-4 text-xs leading-5 text-red-300">{error}</p>}
       </section>
-    </main>
+    </div>
   );
 };
+
+const GuestWorkspace: React.FC = () => (
+  <ThemeProvider>
+    <FlashcardsProvider>
+      <LibraryProvider>
+        <AppContent guestMode />
+      </LibraryProvider>
+    </FlashcardsProvider>
+  </ThemeProvider>
+);
 
 const WorkspaceBootstrap: React.FC<{ user: User }> = ({ user }) => {
   const [attempt, setAttempt] = useState(0);
@@ -220,7 +318,7 @@ const AppGate: React.FC = () => {
   }, [loading, user]);
 
   if (loading) return <main className="flex min-h-screen items-center justify-center bg-[#08090c] text-sm text-neutral-400">Checking sign-in…</main>;
-  if (!user) return <LoginScreen />;
+  if (!user) return <GuestWorkspace />;
   return <WorkspaceBootstrap user={user} />;
 };
 
