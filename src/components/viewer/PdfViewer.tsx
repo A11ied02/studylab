@@ -19,7 +19,7 @@ interface FindOccurrence extends TextRange { page: number; }
 
 const EMPTY_RANGES: TextRange[] = [];
 
-function highlightPdfText(container: HTMLElement, query: string, minMatches: number): number {
+function highlightPdfText(container: HTMLElement, query: string, minMatches: number, activeRange?: TextRange): number {
   // PDF.js nests text spans inside marked-content wrapper spans; only count the actual text spans.
   const spans = Array.from(container.querySelectorAll('span:not(.markedContent)'));
   const pageText = spans.map((span) => span.textContent ?? '').join(' ');
@@ -47,7 +47,10 @@ function highlightPdfText(container: HTMLElement, query: string, minMatches: num
     highlights.sort((a, b) => a.start - b.start).forEach(({ start, end }) => {
       if (start > cursor) fragment.append(document.createTextNode(text.slice(cursor, start)));
       const mark = document.createElement('mark');
-      mark.className = 'pdf-find-highlight';
+      const absoluteStart = spanStart + start;
+      const absoluteEnd = spanStart + end;
+      const isActive = activeRange && absoluteStart < activeRange.end && absoluteEnd > activeRange.start;
+      mark.className = `pdf-find-highlight${isActive ? ' pdf-find-highlight-active' : ''}`;
       mark.textContent = text.slice(Math.max(cursor, start), end);
       fragment.append(mark);
       cursor = end;
@@ -85,10 +88,14 @@ export const PdfViewer: React.FC<{
   const isHindiPdf = file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLowerCase() === 'hindi';
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const currentPageRef = useRef(initialPage);
+  const numPagesRef = useRef(0);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [scale, setScale] = useState(1.2);
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -108,24 +115,31 @@ export const PdfViewer: React.FC<{
   const [spotlightPhase, setSpotlightPhase] = useState<'hidden' | 'active' | 'fading'>('hidden');
   const findInputRef = useRef<HTMLInputElement>(null);
   const findRequestId = useRef(0);
+  const spotlightTargetPageRef = useRef<number | null>(null);
+  const spotlightArmedRef = useRef(false);
   const spotlightStartedRef = useRef(false);
   const spotlightTimersRef = useRef<number[]>([]);
+  const pinchStartRef = useRef<{ distance: number; scale: number } | null>(null);
+  const pinchAdjustFrameRef = useRef(0);
   const keywordTerms = useMemo(() => parseCommaSeparatedKeywords(findQuery), [findQuery]);
   const keywordSignature = keywordTerms.join('\u0000');
   const previousKeywordSignatureRef = useRef(keywordSignature);
 
   const startSearchSpotlight = useCallback(() => {
-    if (!spotlightInitialSearch || spotlightStartedRef.current) return;
+    if (spotlightStartedRef.current) return;
     spotlightStartedRef.current = true;
+    spotlightTimersRef.current.forEach(window.clearTimeout);
     setSpotlightPhase('active');
     const fadeTimer = window.setTimeout(() => setSpotlightPhase('fading'), 2400);
     const hideTimer = window.setTimeout(() => setSpotlightPhase('hidden'), 3200);
     spotlightTimersRef.current = [fadeTimer, hideTimer];
-  }, [spotlightInitialSearch]);
+  }, []);
 
   const handleSearchHighlightReady = useCallback((pageNum: number) => {
-    if (pageNum === initialSearchPage) startSearchSpotlight();
-  }, [initialSearchPage, startSearchSpotlight]);
+    if (pageNum !== spotlightTargetPageRef.current) return;
+    spotlightTargetPageRef.current = null;
+    startSearchSpotlight();
+  }, [startSearchSpotlight]);
 
   useEffect(() => () => {
     spotlightTimersRef.current.forEach(window.clearTimeout);
@@ -148,6 +162,7 @@ export const PdfViewer: React.FC<{
     task.promise.then(async (doc) => {
       if (cancelled) return;
       setPdfDoc(doc);
+      numPagesRef.current = doc.numPages;
       setNumPages(doc.numPages);
       const p = await doc.getPage(1);
       const vp = p.getViewport({ scale: 1 });
@@ -177,7 +192,6 @@ export const PdfViewer: React.FC<{
               }
               return s;
             });
-            setCurrentPage(n);
           }
         });
       },
@@ -186,6 +200,42 @@ export const PdfViewer: React.FC<{
     containerRef.current.querySelectorAll('.pdf-page').forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [pagesMeta, numPages, initialSearchQuery]);
+
+  const updateCurrentPageFromScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const containerTop = container.getBoundingClientRect().top;
+    const anchorY = containerTop + Math.min(120, container.clientHeight * 0.25);
+    const pages = Array.from(container.querySelectorAll<HTMLElement>('.pdf-page'));
+    let pageAtAnchor = pages[0];
+    for (const page of pages) {
+      if (page.getBoundingClientRect().top <= anchorY) pageAtAnchor = page;
+      else break;
+    }
+    const pageNum = Number(pageAtAnchor?.dataset.pageNum);
+    if (!Number.isInteger(pageNum) || pageNum < 1) return;
+    currentPageRef.current = pageNum;
+    setCurrentPage((previous) => previous === pageNum ? previous : pageNum);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let frame = 0;
+    const handleScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        updateCurrentPageFromScroll();
+      });
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [pagesMeta, updateCurrentPageFromScroll]);
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -202,6 +252,60 @@ export const PdfViewer: React.FC<{
   useEffect(() => {
     if (pagesMeta.length && window.innerWidth < 768) handleFitWidth();
   }, [pagesMeta, handleFitWidth]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const getDistance = (touches: TouchList) => {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return;
+      const distance = getDistance(event.touches);
+      if (distance > 0) pinchStartRef.current = { distance, scale: scaleRef.current };
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const pinch = pinchStartRef.current;
+      if (!pinch || event.touches.length !== 2) return;
+      event.preventDefault();
+      const nextScale = Math.max(0.4, Math.min(3, pinch.scale * getDistance(event.touches) / pinch.distance));
+      setScale(Number(nextScale.toFixed(2)));
+
+      const midpointX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+      const midpointY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+      const page = (document.elementFromPoint(midpointX, midpointY) as HTMLElement | null)?.closest<HTMLElement>('.pdf-page');
+      if (!page) return;
+      const pageRect = page.getBoundingClientRect();
+      const containerTop = container.getBoundingClientRect().top;
+      const pageYRatio = Math.max(0, Math.min(1, (midpointY - pageRect.top) / pageRect.height));
+      const viewportY = midpointY - containerTop;
+      if (pinchAdjustFrameRef.current) window.cancelAnimationFrame(pinchAdjustFrameRef.current);
+      pinchAdjustFrameRef.current = window.requestAnimationFrame(() => {
+        pinchAdjustFrameRef.current = 0;
+        const updatedRect = page.getBoundingClientRect();
+        const updatedContainerTop = container.getBoundingClientRect().top;
+        container.scrollTop += updatedRect.top - updatedContainerTop + pageYRatio * updatedRect.height - viewportY;
+      });
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) pinchStartRef.current = null;
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+      if (pinchAdjustFrameRef.current) window.cancelAnimationFrame(pinchAdjustFrameRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const kd = (e: KeyboardEvent) => {
@@ -223,13 +327,18 @@ export const PdfViewer: React.FC<{
     return () => window.removeEventListener('keydown', kd);
   }, [fullscreen, onClose]);
 
-  const scrollToPage = (n: number) => {
-    const p = Math.max(1, Math.min(n, numPages));
+  const scrollToPage = useCallback((n: number) => {
+    const maxPage = numPagesRef.current || 1;
+    const p = Math.max(1, Math.min(n, maxPage));
+    currentPageRef.current = p;
+    setCurrentPage((previous) => previous === p ? previous : p);
+    setVisiblePages((previous) => new Set([...previous, p, ...(p > 1 ? [p - 1] : []), ...(p < maxPage ? [p + 1] : [])]));
     containerRef.current?.querySelector(`[data-page-num="${p}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  }, []);
 
   useEffect(() => {
     findRequestId.current += 1;
+    currentPageRef.current = initialPage;
     setCurrentPage(initialPage);
     setVisiblePages(new Set(initialSearchQuery.trim() ? [initialPage] : [initialPage, initialPage + 1]));
     setFindQuery(initialSearchQuery);
@@ -241,6 +350,8 @@ export const PdfViewer: React.FC<{
     setFindPageRanges(new Map());
     setFindError('');
     setSpotlightPhase('hidden');
+    spotlightTargetPageRef.current = null;
+    spotlightArmedRef.current = false;
     spotlightStartedRef.current = false;
     spotlightTimersRef.current.forEach(window.clearTimeout);
     spotlightTimersRef.current = [];
@@ -258,7 +369,7 @@ export const PdfViewer: React.FC<{
       return next;
     });
     window.setTimeout(() => scrollToPage(target), 80);
-  }, [pagesMeta, initialPage, initialSearchQuery, numPages]);
+  }, [pagesMeta, initialPage, initialSearchQuery, numPages, scrollToPage]);
 
   const jumpToFindMatch = (index: number) => {
     if (index < 0 || index >= findMatches.length) return;
@@ -280,14 +391,22 @@ export const PdfViewer: React.FC<{
       return;
     }
     const requestId = ++findRequestId.current;
+    spotlightTimersRef.current.forEach(window.clearTimeout);
+    spotlightTimersRef.current = [];
+    spotlightTargetPageRef.current = null;
+    spotlightArmedRef.current = true;
+    spotlightStartedRef.current = false;
+    setSpotlightPhase('hidden');
     setInitialSearchDismissed(true);
     setFindLoading(true);
     setFindError('');
     setFindMatches([]);
+    setActiveFindIndex(0);
     setFindPageRanges(new Map());
     try {
       const pageRanges = new Map<number, TextRange[]>();
       const uniquePages = [...new Set(pageNumbers)];
+      const currentPage = currentPageRef.current;
       const priorityPage = uniquePages.includes(currentPage) ? currentPage : uniquePages[0];
       const remainingPages = uniquePages.filter((pageNumber) => pageNumber !== priorityPage);
       let firstMatchPage: number | null = null;
@@ -317,6 +436,10 @@ export const PdfViewer: React.FC<{
           firstMatchPage = orderedPages.includes(priorityPage) ? priorityPage : orderedPages[0];
           const matchIndex = matches.findIndex((match) => match.page === firstMatchPage);
           setActiveFindIndex(Math.max(0, matchIndex));
+          if (spotlightArmedRef.current) {
+            spotlightTargetPageRef.current = firstMatchPage;
+            spotlightArmedRef.current = false;
+          }
           setVisiblePages((previous) => new Set([...previous, firstMatchPage!]));
           window.setTimeout(() => scrollToPage(firstMatchPage!), 0);
         }
@@ -350,7 +473,7 @@ export const PdfViewer: React.FC<{
     } finally {
       if (requestId === findRequestId.current) setFindLoading(false);
     }
-  }, [pdfDoc, currentPage, isHindiPdf]);
+  }, [pdfDoc, isHindiPdf, scrollToPage]);
 
   const runDocumentFind = (event: React.FormEvent) => {
     event.preventDefault();
@@ -366,12 +489,15 @@ export const PdfViewer: React.FC<{
     findRequestId.current += 1;
     setFindQuery('');
     setFindMatches([]);
+    setActiveFindIndex(0);
     setFindPageRanges(new Map());
     setFindLoading(false);
     setFindError('');
     setIsKeywordSettingsOpen(false);
     setInitialSearchDismissed(true);
     setSpotlightPhase('hidden');
+    spotlightTargetPageRef.current = null;
+    spotlightArmedRef.current = false;
     spotlightStartedRef.current = true;
     spotlightTimersRef.current.forEach(window.clearTimeout);
     spotlightTimersRef.current = [];
@@ -394,6 +520,9 @@ export const PdfViewer: React.FC<{
     if (initialSearchRanges.length) {
       const page = Math.max(1, Math.min(initialSearchPage, pdfDoc.numPages));
       const matches = initialSearchRanges.map((range) => ({ page, ...range }));
+      spotlightArmedRef.current = spotlightInitialSearch;
+      spotlightTargetPageRef.current = spotlightInitialSearch ? page : null;
+      spotlightStartedRef.current = false;
       setFindPageRanges(new Map([[page, initialSearchRanges]]));
       setFindMatches(matches);
       setActiveFindIndex(0);
@@ -554,9 +683,16 @@ export const PdfViewer: React.FC<{
             onChange={(event) => {
               const nextQuery = event.target.value;
               findRequestId.current += 1;
+              spotlightTargetPageRef.current = null;
+              spotlightArmedRef.current = false;
+              spotlightStartedRef.current = true;
+              spotlightTimersRef.current.forEach(window.clearTimeout);
+              spotlightTimersRef.current = [];
+              setSpotlightPhase('hidden');
               setFindQuery(nextQuery);
               if (nextQuery.trim() !== initialSearchQuery.trim()) setInitialSearchDismissed(true);
               setFindMatches([]);
+              setActiveFindIndex(0);
               setFindPageRanges(new Map());
               setFindError('');
               setFindLoading(false);
@@ -616,6 +752,7 @@ export const PdfViewer: React.FC<{
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center gap-4 py-6 px-4 select-text"
+        style={{ touchAction: 'pan-x pan-y' }}
       >
         {loading && (
           <div className="w-full max-w-[42rem] animate-pulse px-1" role="status" aria-label="Loading PDF page">
@@ -648,6 +785,7 @@ export const PdfViewer: React.FC<{
         {pdfDoc && pagesMeta.map((meta) => {
           const isFindMatch = findPageRanges.has(meta.pageNum);
           const isInitialSearchMatch = !initialSearchDismissed && Boolean(initialSearchQuery.trim()) && meta.pageNum === initialSearchPage;
+          const activeFindMatch = findMatches[activeFindIndex];
           return (
             <PdfPage
               key={meta.pageNum}
@@ -659,11 +797,12 @@ export const PdfViewer: React.FC<{
               isVisible={visiblePages.has(meta.pageNum)}
               isSearchMatch={isFindMatch || isInitialSearchMatch}
               searchTerm={isFindMatch ? findQuery : isInitialSearchMatch ? initialSearchQuery : ''}
+              activeRange={activeFindMatch?.page === meta.pageNum ? activeFindMatch : undefined}
               minKeywordMatches={minKeywordMatches}
               isHindiPdf={isHindiPdf}
               spotlightActive={spotlightPhase !== 'hidden'}
               spotlightFading={spotlightPhase === 'fading'}
-              onSearchHighlightReady={spotlightInitialSearch ? handleSearchHighlightReady : undefined}
+              onSearchHighlightReady={handleSearchHighlightReady}
             />
           );
         })}
@@ -682,12 +821,13 @@ const PdfPage: React.FC<{
   isVisible: boolean;
   isSearchMatch: boolean;
   searchTerm: string;
+  activeRange?: TextRange;
   minKeywordMatches: number;
   isHindiPdf: boolean;
   spotlightActive: boolean;
   spotlightFading: boolean;
   onSearchHighlightReady?: (pageNum: number) => void;
-}> = ({ pdfDoc, pageNum, scale, width, height, isVisible, isSearchMatch, searchTerm, minKeywordMatches, isHindiPdf, spotlightActive, spotlightFading, onSearchHighlightReady }) => {
+}> = ({ pdfDoc, pageNum, scale, width, height, isVisible, isSearchMatch, searchTerm, activeRange, minKeywordMatches, isHindiPdf, spotlightActive, spotlightFading, onSearchHighlightReady }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const taskRef = useRef<pdfjsLib.RenderTask | null>(null);
@@ -777,10 +917,13 @@ const PdfPage: React.FC<{
     container.querySelectorAll('span').forEach((span) => span.normalize());
 
     if (isSearchMatch && searchTerm) {
-      const highlightCount = highlightPdfText(container, searchTerm, minKeywordMatches);
+      const highlightCount = highlightPdfText(container, searchTerm, minKeywordMatches, activeRange);
+      if (activeRange) {
+        container.querySelector('mark.pdf-find-highlight-active')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
       if (highlightCount) onSearchHighlightReady?.(pageNum);
     }
-  }, [textLayerVersion, isSearchMatch, searchTerm, minKeywordMatches, pageNum, onSearchHighlightReady]);
+  }, [textLayerVersion, isSearchMatch, searchTerm, activeRange?.start, activeRange?.end, minKeywordMatches, pageNum, onSearchHighlightReady]);
 
   const displayW = Math.round(width * scale);
   const displayH = Math.round(height * scale);

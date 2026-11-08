@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, FileText, Filter, LoaderCircle, Search, X } from 'lucide-react';
 import { useLibrary } from '../../context/LibraryContext';
 import { LoadedPdfSearchIndex, PdfTextMatch, loadPdfSearchIndex, searchPdfPages } from '../../services/pdfSearch';
-import { findSearchTextRanges, parseCommaSeparatedKeywords } from '../../services/searchText';
+import { parseCommaSeparatedKeywords } from '../../services/searchText';
 import { BookFolder, Subject } from '../../types/library';
 import { HighlightedText } from './HighlightedText';
 
@@ -378,10 +378,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     key={result.id}
                     onClick={() => {
                       const minimum = keywordTerms.length > 1 ? minKeywordMatches : 1;
-                      openPdf(file, result.page, query.trim(), minimum, {
-                        ranges: findSearchTextRanges(result.text, query.trim(), minimum),
-                        spotlight: true,
-                      });
+                      // Let the reader recompute the match offsets from its own PDF text layer.
+                      openPdf(file, result.page, query.trim(), minimum, { spotlight: true });
                       onClose();
                     }}
                     className="group flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.04]"

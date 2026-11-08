@@ -66,6 +66,12 @@
   padding: 0;
 }
 
+.textLayer mark.pdf-find-highlight-active {
+  background: #3b82f6;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(30, 64, 175, 0.4);
+}
+
 @keyframes flashcard-turn {
   0%, 100% {
     filter: blur(0);

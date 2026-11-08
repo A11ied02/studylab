@@ -306,6 +306,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setActivePdfSearchQuery(route.query ?? '');
       setActivePdfSearchPage(route.page ?? 1);
       setActivePdfMinKeywordMatches(route.minKeywordMatches ?? 1);
+      setActivePdfSearchRanges([]);
+      setActivePdfSearchSpotlight(false);
       return;
     }
 
@@ -317,6 +319,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivePdfSearchQuery('');
     setActivePdfSearchPage(1);
     setActivePdfMinKeywordMatches(1);
+    setActivePdfSearchRanges([]);
+    setActivePdfSearchSpotlight(false);
   }, [allPdfs, subjects]);
 
   useEffect(() => {

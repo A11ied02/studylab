@@ -267,7 +267,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onOpenGlobalSea
                     return (
                       <button
                         key={file.id}
-                        onClick={() => { openPdf(file, 1, query.trim()); setQuery(''); setShowSuggestions(false); }}
+                        onClick={() => { openPdf(file, 1); setQuery(''); setShowSuggestions(false); }}
                         className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.06]"
                       >
                         <FileText size={15} className="shrink-0 text-neutral-500" />
