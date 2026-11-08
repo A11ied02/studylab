@@ -129,9 +129,13 @@ export const PdfViewer: React.FC<{
   onRouteChange,
   onClose,
 }) => {
-  const { getAssetUrl } = useLibrary();
-  const pdfUrl = getAssetUrl(file.path);
-  const pdfWorkerUrl = getAssetUrl('pdf.worker.min.mjs');
+  const { getAssetUrl, getAssetFallbackUrl } = useLibrary();
+  const primaryPdfUrl = getAssetUrl(file.path);
+  const fallbackPdfUrl = getAssetFallbackUrl(file.path);
+  const [fallbackPdfPath, setFallbackPdfPath] = useState<string | null>(null);
+  const pdfUrl = fallbackPdfPath === file.path ? fallbackPdfUrl : primaryPdfUrl;
+  const pdfWorkerPath = fallbackPdfPath === file.path ? getAssetFallbackUrl('pdf.worker.min.mjs') : getAssetUrl('pdf.worker.min.mjs');
+  const pdfWorkerUrl = pdfWorkerPath;
   const isHindiPdf = file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLowerCase() === 'hindi';
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -346,10 +350,16 @@ export const PdfViewer: React.FC<{
       })));
       setLoading(false);
     }).catch((err) => {
-      if (!cancelled) { setError(err.message || 'Failed to load PDF'); setLoading(false); }
+      if (cancelled) return;
+      if (pdfUrl !== fallbackPdfUrl) {
+        setFallbackPdfPath(file.path);
+        return;
+      }
+      setError(err.message || 'Failed to load PDF');
+      setLoading(false);
     });
     return () => { cancelled = true; releasePdfDocumentTask(pdfUrl, task); };
-  }, [pdfUrl, pdfWorkerUrl]);
+  }, [pdfUrl, fallbackPdfUrl, file.path, pdfWorkerUrl]);
 
   const updateCurrentPageFromScroll = useCallback(() => {
     const container = containerRef.current;
@@ -1150,15 +1160,17 @@ const PdfPage: React.FC<{
         if (activeMark && activeLine && pageElement) {
           const pageRect = pageElement.getBoundingClientRect();
           const wordRect = activeMark.getBoundingClientRect();
-          activeLine.style.top = `${(wordRect.top - pageRect.top) / displayScale}px`;
-          activeLine.style.height = `${Math.max(1, wordRect.height / displayScale)}px`;
+          // The page element is laid out in rendered pixels; undo only the outer zoom transform.
+          const pageStackScale = displayScale / renderScale;
+          activeLine.style.top = `${(wordRect.top - pageRect.top) / pageStackScale}px`;
+          activeLine.style.height = `${Math.max(1, wordRect.height / pageStackScale)}px`;
           activeLine.style.display = 'block';
           activeMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         }
       }
       if (highlightCount) onSearchHighlightReady?.(pageNum);
     }
-  }, [textLayerVersion, isSearchMatch, searchTerm, activeRange?.start, activeRange?.end, minKeywordMatches, pageNum, onSearchHighlightReady]);
+  }, [textLayerVersion, isSearchMatch, searchTerm, activeRange?.start, activeRange?.end, minKeywordMatches, renderScale, displayScale, pageNum, onSearchHighlightReady]);
 
   const renderW = Math.round(width * renderScale);
   const renderH = Math.round(height * renderScale);
@@ -1185,7 +1197,7 @@ const PdfPage: React.FC<{
         ref={activeLineRef}
         aria-hidden="true"
         className="pdf-find-active-line"
-        style={{ width, transform: `scale(${renderScale})`, display: 'none' }}
+        style={{ width: renderW, display: 'none' }}
       />
       <div
         ref={textRef}

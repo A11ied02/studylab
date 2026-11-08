@@ -106,23 +106,17 @@ export const SettingsModal: React.FC = () => {
   const [indexStatus, setIndexStatus] = useState<'idle' | 'loading' | 'ready' | 'rebuilding' | 'error'>('idle');
   const [indexProgress, setIndexProgress] = useState<PdfIndexProgress | null>(null);
   const [indexError, setIndexError] = useState('');
-  const [libraryCacheStatus, setLibraryCacheStatus] = useState<LibraryCacheStatus>({ cachedItems: 0, totalItems: 0, cachedBytes: 0, downloading: false });
+  const [libraryCacheStatus, setLibraryCacheStatus] = useState<LibraryCacheStatus>({ cachedItems: 0, totalItems: 0, cachedBytes: 0, downloading: false, assets: [] });
   const [clearingLibraryCache, setClearingLibraryCache] = useState(false);
 
   const storage = StorageService.getStorageUsage();
 
-  const cachedLibraryUrls = allPdfs.map((file) => getAssetUrl(file.path));
-  const cachedIndexUrl = getAssetUrl('search/index.json');
-
   useEffect(() => {
     if (!isSettingsOpen || activeTab !== 'storage') return;
-    const targets = [cachedIndexUrl, ...cachedLibraryUrls];
     const unsubscribe = subscribeLibraryCache(setLibraryCacheStatus);
-    void getLibraryCacheStatus(targets);
+    void getLibraryCacheStatus();
     return unsubscribe;
-  // getAssetUrl is stable in behavior, but the context creates a new function per render.
-  // Depending on it here would resubscribe every time the cache status updates.
-  }, [isSettingsOpen, activeTab, allPdfs]);
+  }, [isSettingsOpen, activeTab]);
 
   const handleClearLibraryCache = async () => {
     setClearingLibraryCache(true);
@@ -132,7 +126,6 @@ export const SettingsModal: React.FC = () => {
       setSearchIndex(null);
       setIndexStatus('idle');
       setIndexError('');
-      setLibraryCacheStatus({ cachedItems: 0, totalItems: cachedLibraryUrls.length + 1, cachedBytes: 0, downloading: false });
     } finally {
       setClearingLibraryCache(false);
     }
@@ -150,7 +143,7 @@ export const SettingsModal: React.FC = () => {
 
   const handleReindex = async () => {
     setIndexStatus('rebuilding');
-    setIndexProgress({ completedPdfs: 0, totalPdfs: allPdfs.length, stage: 'extracting' });
+    setIndexProgress({ completedPdfs: 0, totalPdfs: allPdfs.filter((file) => file.isAdvancedSearchable !== false).length, stage: 'extracting' });
     setIndexError('');
     try {
       await buildPdfSearchIndex(allPdfs, subjects, folderNameMap, getAssetUrl, setIndexProgress);
@@ -711,16 +704,40 @@ export const SettingsModal: React.FC = () => {
               <div className="rounded-2xl bg-bg-card border border-bg-border p-6 space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold text-white">Cached library data</h3>
-                  <p className="mt-1 text-xs text-neutral-500">Studylab quietly downloads the book PDFs and search index in the background. Interrupted downloads resume the next time the app opens or the device reconnects.</p>
+                  <p className="mt-1 text-xs text-neutral-500">Studylab saves book PDFs, covers, and previews in the background. Assets that are not saved load from the deployed library when online.</p>
                 </div>
                 <div className="flex items-center justify-between border-y border-white/5 py-3">
                   <span className="text-sm text-neutral-400">Library files saved</span>
                   <span className="font-mono text-sm font-semibold text-white">{libraryCacheStatus.cachedItems} / {libraryCacheStatus.totalItems}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-neutral-500">
-                  <span>{libraryCacheStatus.downloading ? 'Downloading in background…' : 'Available on this device'}</span>
+                  <span>{libraryCacheStatus.downloading ? 'Saving library assets in background…' : 'Unsaved assets use the online fallback'}</span>
                   <span>{formatIndexSize(libraryCacheStatus.cachedBytes)}</span>
                 </div>
+                <div className="grid grid-cols-3 gap-2 text-[11px] text-neutral-400">
+                  {([
+                    ['pdf', 'PDFs'],
+                    ['cover', 'Covers'],
+                    ['preview', 'Previews'],
+                  ] as const).map(([kind, label]) => {
+                    const assets = libraryCacheStatus.assets.filter((asset) => asset.kind === kind);
+                    const downloaded = assets.filter((asset) => asset.downloaded).length;
+                    return <div key={kind} className="rounded-lg bg-white/[0.03] px-2.5 py-2">{label} <span className="font-mono text-white">{downloaded}/{assets.length}</span></div>;
+                  })}
+                </div>
+                <details className="rounded-lg border border-white/5 bg-black/10 px-3 py-2 text-xs text-neutral-400">
+                  <summary className="cursor-pointer select-none">View asset download list</summary>
+                  <div className="mt-2 max-h-52 space-y-1 overflow-y-auto pr-1">
+                    {libraryCacheStatus.assets.map((asset) => (
+                      <div key={`${asset.kind}:${asset.path}`} className="flex items-start justify-between gap-3">
+                        <span className="min-w-0 break-all">{asset.path}</span>
+                        <span className={`shrink-0 ${asset.downloaded ? 'text-emerald-400' : 'text-amber-300'}`}>
+                          {asset.downloaded ? 'Downloaded' : 'Online fallback'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
                 {libraryCacheStatus.downloading && (
                   <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round(libraryCacheStatus.cachedItems / Math.max(libraryCacheStatus.totalItems, 1) * 100)}%` }} />

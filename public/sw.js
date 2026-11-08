@@ -1,6 +1,7 @@
 const CACHE_NAME = 'studylab-shell-v1';
 const LIBRARY_CACHE_NAME = 'studylab-library-v1';
 const APP_ROOT = new URL('./', self.location.href);
+const GITHUB_PAGES_ASSET_ROOT = new URL('https://a11ied02.github.io/studylab/');
 const SHELL_FILES = [
   APP_ROOT.href,
   new URL('manifest.webmanifest', APP_ROOT).href,
@@ -13,9 +14,11 @@ const SHELL_FILES = [
 ];
 const pdfBuffers = new Map();
 let pdfBufferBytes = 0;
+let libraryCachingDisabled = false;
 
 self.addEventListener('message', (event) => {
   if (event.data?.type !== 'STUDYLAB_CLEAR_LIBRARY_CACHE') return;
+  libraryCachingDisabled = true;
   pdfBuffers.clear();
   pdfBufferBytes = 0;
 });
@@ -75,6 +78,36 @@ async function respondFromCachedPdf(request, url, cached) {
   return new Response(bytes.slice(start, end + 1), { status: 206, headers });
 }
 
+function getDeploymentAssetUrl(requestUrl) {
+  const requested = new URL(requestUrl);
+  const relativePath = requested.pathname.slice(APP_ROOT.pathname.length).replace(/^\/+/, '');
+  return new URL(`${relativePath}${requested.search}`, GITHUB_PAGES_ASSET_ROOT);
+}
+
+async function fetchWithDeploymentFallback(request) {
+  let primaryResponse = null;
+  try {
+    primaryResponse = await fetch(request);
+    if (primaryResponse.ok) return primaryResponse;
+  } catch {
+    // Try the deployed library when a local or custom-domain asset is unavailable.
+  }
+
+  const fallbackUrl = getDeploymentAssetUrl(request.url);
+  if (fallbackUrl.href === request.url) return primaryResponse || Response.error();
+  try {
+    return await fetch(new Request(fallbackUrl.href, {
+      method: request.method,
+      headers: request.headers,
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-cache',
+    }));
+  } catch {
+    return primaryResponse || Response.error();
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -107,7 +140,7 @@ self.addEventListener('fetch', (event) => {
       } catch {
         // Fall through to the network when browser storage is unavailable.
       }
-      return fetch(request);
+      return fetchWithDeploymentFallback(request);
     })());
     return;
   }
@@ -118,9 +151,28 @@ self.addEventListener('fetch', (event) => {
         const libraryCache = await caches.open(LIBRARY_CACHE_NAME);
         const cached = await libraryCache.match(requestUrl.href);
         if (cached) return cached;
-        return fetch(request);
+        return fetchWithDeploymentFallback(request);
       } catch {
-        return fetch(request);
+        return fetchWithDeploymentFallback(request);
+      }
+    })());
+    return;
+  }
+
+  const isLibraryImage = requestUrl.pathname.includes('/covers/') || requestUrl.pathname.includes('/thumbnails/');
+  if (isLibraryImage) {
+    event.respondWith((async () => {
+      try {
+        const libraryCache = await caches.open(LIBRARY_CACHE_NAME);
+        const cached = await libraryCache.match(requestUrl.href);
+        if (cached) return cached;
+        const response = await fetchWithDeploymentFallback(request);
+        if (request.destination === 'image' && !libraryCachingDisabled && response.ok && response.type !== 'opaque') {
+          event.waitUntil(libraryCache.put(requestUrl.href, response.clone()).catch(() => undefined));
+        }
+        return response;
+      } catch {
+        return fetchWithDeploymentFallback(request);
       }
     })());
     return;
@@ -145,12 +197,12 @@ self.addEventListener('fetch', (event) => {
   const essentialData = ['library-manifest.json', 'foldernamemap.json'].some((file) => requestUrl.pathname.endsWith(`/${file}`));
   if (!essentialData && !['script', 'style', 'font', 'image', 'manifest'].includes(request.destination)) return;
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+    caches.match(request).then((cached) => cached || fetchWithDeploymentFallback(request).then((response) => {
       if (response.ok) {
         const copy = response.clone();
         event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined));
       }
       return response;
-    })),
+    })).catch(() => fetchWithDeploymentFallback(request)),
   );
 });

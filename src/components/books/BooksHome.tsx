@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLibrary, BookScale } from '../../context/LibraryContext';
 import { Subject } from '../../types/library';
 import { ImageOff } from 'lucide-react';
+import { FallbackAssetImage } from './FallbackAssetImage';
 
 interface BookCoverProps {
   subject: Subject;
@@ -9,7 +10,7 @@ interface BookCoverProps {
 }
 
 const BookCover: React.FC<BookCoverProps> = ({ subject, onClick }) => {
-  const { getAssetUrl } = useLibrary();
+  const { getAssetUrl, getAssetFallbackUrl } = useLibrary();
   const [imgError, setImgError] = useState(false);
   const coverUrl = getAssetUrl(subject.cover);
 
@@ -21,10 +22,11 @@ const BookCover: React.FC<BookCoverProps> = ({ subject, onClick }) => {
       aria-label={subject.displayName}
     >
       {!imgError ? (
-        <img
+        <FallbackAssetImage
           src={coverUrl}
+          fallbackSrc={getAssetFallbackUrl(subject.cover)}
           alt=""
-          onError={() => setImgError(true)}
+          onUnavailable={() => setImgError(true)}
           className="w-full h-full object-cover object-center rounded-xl shadow-md"
           loading="lazy"
           draggable={false}

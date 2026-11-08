@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Eye, Download, BookOpen } from 'lucide-react';
 import { BookFile } from '../../types/library';
 import { useLibrary } from '../../context/LibraryContext';
+import { FallbackAssetImage } from './FallbackAssetImage';
 
 interface DocumentCardProps {
   file: BookFile;
@@ -9,7 +10,7 @@ interface DocumentCardProps {
 }
 
 export const DocumentCard: React.FC<DocumentCardProps> = ({ file, onOpen }) => {
-  const { getAssetUrl } = useLibrary();
+  const { getAssetUrl, getAssetFallbackUrl } = useLibrary();
   const [imageError, setImageError] = useState(false);
 
   const formatSize = (bytes: number): string => {
@@ -30,10 +31,11 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({ file, onOpen }) => {
       {/* Thumbnail Aspect Box */}
       <div className="relative w-full aspect-[3/4] bg-neutral-100 dark:bg-neutral-900 overflow-hidden flex items-center justify-center">
         {!imageError ? (
-          <img
+          <FallbackAssetImage
             src={thumbUrl}
+            fallbackSrc={getAssetFallbackUrl(file.thumbnailUrl)}
             alt={file.title}
-            onError={() => setImageError(true)}
+            onUnavailable={() => setImageError(true)}
             className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-102"
             loading="lazy"
           />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, ImageOff } from 'lucide-react';
 import { DEFAULT_IT_GRADIENTS, useLibrary } from '../../context/LibraryContext';
 import { BookFile, BookFolder } from '../../types/library';
+import { FallbackAssetImage } from './FallbackAssetImage';
 
 const makeSvgGradientId = (prefix: string, index: number, folderPath: string) =>
   `${prefix}_${index}_${folderPath.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
@@ -12,7 +13,7 @@ const ChapterCard: React.FC<{ file: BookFile; onOpen: (f: BookFile) => void; sho
   onOpen,
   showTitle = false,
 }) => {
-  const { getAssetUrl } = useLibrary();
+  const { getAssetUrl, getAssetFallbackUrl } = useLibrary();
   const [imgError, setImgError] = useState(false);
   const thumbUrl = getAssetUrl(file.thumbnailUrl);
 
@@ -25,10 +26,11 @@ const ChapterCard: React.FC<{ file: BookFile; onOpen: (f: BookFile) => void; sho
     >
       <div className={`relative w-full overflow-hidden rounded-xl ${showTitle ? 'aspect-[3/4]' : 'h-full'}`}>
         {!imgError ? (
-          <img
+          <FallbackAssetImage
             src={thumbUrl}
+            fallbackSrc={getAssetFallbackUrl(file.thumbnailUrl)}
             alt=""
-            onError={() => setImgError(true)}
+            onUnavailable={() => setImgError(true)}
             className="w-full h-full object-cover object-top shadow-md"
             loading="lazy"
             draggable={false}
@@ -102,7 +104,7 @@ const FolderCard: React.FC<{ folder: BookFolder; onOpen: (path: string) => void 
   folder,
   onOpen,
 }) => {
-  const { getAssetUrl } = useLibrary();
+  const { getAssetUrl, getAssetFallbackUrl } = useLibrary();
   const [imgError, setImgError] = useState(false);
   const coverUrl = getAssetUrl(folder.cover);
 
@@ -114,10 +116,11 @@ const FolderCard: React.FC<{ folder: BookFolder; onOpen: (path: string) => void 
       title={folder.displayName}
     >
       {!imgError ? (
-        <img
+        <FallbackAssetImage
           src={coverUrl}
+          fallbackSrc={getAssetFallbackUrl(folder.cover)}
           alt=""
-          onError={() => setImgError(true)}
+          onUnavailable={() => setImgError(true)}
           className="w-full h-full object-cover object-center rounded-xl shadow-md"
           loading="lazy"
           draggable={false}

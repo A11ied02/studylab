@@ -6,7 +6,8 @@ import { StorageService } from '../services/storage';
 import { preloadPdfDocument } from '../services/pdfDocument';
 import { saveWorkspaceValue } from '../services/workspaceChanges';
 import { clearAppRoute, parseAppRoute, writeAppRoute } from '../services/appRoute';
-import { startLibraryCaching } from '../services/libraryCache';
+import { LibraryCacheTarget, startLibraryCaching } from '../services/libraryCache';
+import { getGitHubPagesAssetUrl } from '../services/assetUrls';
 
 export interface ScienceGradients {
   bio: [string, string];
@@ -86,6 +87,7 @@ interface LibraryContextType {
 
   // Helpers
   getAssetUrl: (relativePath: string) => string;
+  getAssetFallbackUrl: (relativePath: string) => string;
   allPdfs: BookFile[];
 }
 
@@ -182,6 +184,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return `${cleanBase}${cleanRel}`;
   };
 
+  const getAssetFallbackUrl = (relPath: string): string => getGitHubPagesAssetUrl(relPath);
+
   useEffect(() => {
     async function loadLibraryData() {
       try {
@@ -272,10 +276,24 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return list;
   }, [subjects]);
 
+  const cacheAssets = useMemo(() => {
+    const assets: LibraryCacheTarget[] = [];
+    const collect = (folder: BookFolder) => {
+      if (folder.cover) assets.push({ path: folder.cover, kind: 'cover' });
+      for (const file of folder.files ?? []) {
+        assets.push({ path: file.thumbnailUrl, kind: 'preview' });
+        assets.push({ path: file.path, kind: 'pdf' });
+      }
+      for (const child of folder.subfolders ?? []) collect(child);
+    };
+    subjects.forEach(collect);
+    return assets;
+  }, [subjects]);
+
   useEffect(() => {
     if (!manifest) return;
-    startLibraryCaching(allPdfs.map((file) => getAssetUrl(file.path)), getAssetUrl('search/index.json'));
-  }, [manifest, allPdfs]);
+    startLibraryCaching(cacheAssets, 'search/index.json');
+  }, [manifest, cacheAssets]);
 
   const applyRoute = useCallback(() => {
     const route = parseAppRoute();
@@ -452,6 +470,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setSidebarExpanded,
         setIsSettingsOpen,
         getAssetUrl,
+        getAssetFallbackUrl,
         allPdfs,
       }}
     >
