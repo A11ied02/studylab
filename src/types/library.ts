@@ -7,6 +7,7 @@ export interface BookFile {
   sizeBytes: number;
   thumbnailUrl: string; // relative thumbnail, e.g. "thumbnails/SST/Eco/01 - Development.png"
   isEconomicsException?: boolean;
+  isAdvancedSearchable?: boolean;
 }
 
 export interface BookFolder {

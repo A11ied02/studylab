@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import {
@@ -16,12 +16,59 @@ import { getPdfDocumentTask, releasePdfDocumentTask } from '../../services/pdfDo
 interface PageMeta { pageNum: number; width: number; height: number; }
 interface TextRange { start: number; end: number; }
 interface FindOccurrence extends TextRange { page: number; }
+interface VisualTextItem { text: string; spanIndex: number; x: number; y: number; height: number; }
+interface ZoomAnchor {
+  pageNum: number;
+  pageRatioX: number;
+  pageRatioY: number;
+  viewportX: number;
+  viewportY: number;
+  startScrollLeft: number;
+  startScrollTop: number;
+  baseLeft: number;
+  baseTop: number;
+  baseWidth: number;
+  baseHeight: number;
+  containerLeft: number;
+  containerTop: number;
+}
+type PdfTextContent = Awaited<ReturnType<pdfjsLib.PDFPageProxy['getTextContent']>>;
 
 const EMPTY_RANGES: TextRange[] = [];
 
+function getVisualTextItems(page: pdfjsLib.PDFPageProxy, content: PdfTextContent): VisualTextItem[] {
+  const viewport = page.getViewport({ scale: 1 });
+  let spanIndex = 0;
+  const items = content.items.flatMap((item) => {
+    if (!('str' in item) || typeof item.str !== 'string' || !item.str.length) return [];
+    const transform = item.transform;
+    const [x, y] = viewport.convertToViewportPoint(transform[4], transform[5]);
+    const height = Math.max(1, Math.hypot(transform[2], transform[3]));
+    const visualItem = { text: item.str, spanIndex, x, y, height };
+    spanIndex += 1;
+    return [visualItem];
+  }).sort((a, b) => a.y - b.y || a.x - b.x || a.spanIndex - b.spanIndex);
+
+  const lines: { y: number; height: number; items: VisualTextItem[] }[] = [];
+  for (const item of items) {
+    const line = lines[lines.length - 1];
+    const tolerance = line ? Math.max(2, Math.min(line.height, item.height) * 0.45) : 0;
+    if (!line || Math.abs(item.y - line.y) > tolerance) {
+      lines.push({ y: item.y, height: item.height, items: [item] });
+    } else {
+      line.items.push(item);
+      line.y = (line.y * (line.items.length - 1) + item.y) / line.items.length;
+      line.height = Math.max(line.height, item.height);
+    }
+  }
+
+  return lines.flatMap((line) => line.items.sort((a, b) => a.x - b.x || a.spanIndex - b.spanIndex));
+}
+
 function highlightPdfText(container: HTMLElement, query: string, minMatches: number, activeRange?: TextRange): number {
   // PDF.js nests text spans inside marked-content wrapper spans; only count the actual text spans.
-  const spans = Array.from(container.querySelectorAll('span:not(.markedContent)'));
+  const spans = Array.from(container.querySelectorAll<HTMLSpanElement>('span[data-pdf-find-order]'))
+    .sort((a, b) => Number(a.dataset.pdfFindOrder) - Number(b.dataset.pdfFindOrder));
   const pageText = spans.map((span) => span.textContent ?? '').join(' ');
   const sortedRanges = findSearchTextRanges(pageText, query, minMatches);
   let pageOffset = 0;
@@ -88,14 +135,21 @@ export const PdfViewer: React.FC<{
   const isHindiPdf = file.rawPath.replace(/\\/g, '/').split('/')[0]?.toLowerCase() === 'hindi';
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const zoomFrameRef = useRef<HTMLDivElement>(null);
+  const pageStackRef = useRef<HTMLDivElement>(null);
+  const zoomLabelRef = useRef<HTMLSpanElement>(null);
   const currentPageRef = useRef(initialPage);
   const numPagesRef = useRef(0);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
-  const [scale, setScale] = useState(1.2);
-  const scaleRef = useRef(scale);
-  scaleRef.current = scale;
+  const [renderScale, setRenderScale] = useState(1.2);
+  const scaleRef = useRef(1.2);
+  const renderScaleRef = useRef(renderScale);
+  renderScaleRef.current = renderScale;
+  const zoomCommitTimerRef = useRef<number | null>(null);
+  const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
+  const zoomLayoutRef = useRef({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -120,10 +174,131 @@ export const PdfViewer: React.FC<{
   const spotlightStartedRef = useRef(false);
   const spotlightTimersRef = useRef<number[]>([]);
   const pinchStartRef = useRef<{ distance: number; scale: number } | null>(null);
-  const pinchAdjustFrameRef = useRef(0);
   const keywordTerms = useMemo(() => parseCommaSeparatedKeywords(findQuery), [findQuery]);
   const keywordSignature = keywordTerms.join('\u0000');
   const previousKeywordSignatureRef = useRef(keywordSignature);
+
+  const syncZoomLayout = useCallback((ratio = scaleRef.current / renderScaleRef.current) => {
+    const container = containerRef.current;
+    const frame = zoomFrameRef.current;
+    const stack = pageStackRef.current;
+    if (!container || !frame || !stack) return;
+    const safeRatio = Math.max(0.4 / renderScaleRef.current, Math.min(3 / renderScaleRef.current, ratio));
+    const pagesWidth = pagesMeta.reduce((largest, page) => Math.max(largest, page.width * renderScaleRef.current), 0);
+    const pagesHeight = pagesMeta.reduce((total, page) => total + page.height * renderScaleRef.current, 0);
+    const baseWidth = Math.max(container.clientWidth, pagesWidth + 32);
+    const baseHeight = pagesMeta.length ? pagesHeight + Math.max(0, pagesMeta.length - 1) * 16 + 48 : stack.offsetHeight;
+    zoomLayoutRef.current = { width: baseWidth, height: Math.max(1, baseHeight) };
+    stack.style.boxSizing = 'border-box';
+    stack.style.width = `${baseWidth}px`;
+    stack.style.left = '0px';
+    frame.style.width = `${Math.max(container.clientWidth, baseWidth * safeRatio)}px`;
+    frame.style.height = `${Math.max(1, baseHeight * safeRatio)}px`;
+    stack.style.transformOrigin = 'top left';
+    stack.style.transform = `scale(${safeRatio})`;
+  }, [pagesMeta]);
+
+  const createZoomAnchor = useCallback((x: number, y: number): ZoomAnchor | null => {
+    const container = containerRef.current;
+    if (!container) return null;
+    const containerRect = container.getBoundingClientRect();
+    const page = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('.pdf-page')
+      ?? container.querySelector<HTMLElement>(`[data-page-num="${currentPageRef.current}"]`)
+      ?? container.querySelector<HTMLElement>('.pdf-page');
+    if (!page) return null;
+    const pageRect = page.getBoundingClientRect();
+    const pageNum = Number(page.dataset.pageNum);
+    const pageMeta = pagesMeta[pageNum - 1];
+    if (!pageMeta || !pageRect.width || !pageRect.height) return null;
+    const baseWidth = pageMeta.width * renderScaleRef.current;
+    const baseHeight = pageMeta.height * renderScaleRef.current;
+    const stackWidth = zoomLayoutRef.current.width || container.clientWidth;
+    const viewportX = x - containerRect.left;
+    const viewportY = y - containerRect.top;
+    return {
+      pageNum,
+      pageRatioX: Math.max(0, Math.min(1, (x - pageRect.left) / pageRect.width)),
+      pageRatioY: Math.max(0, Math.min(1, (y - pageRect.top) / pageRect.height)),
+      viewportX,
+      viewportY,
+      startScrollLeft: container.scrollLeft,
+      startScrollTop: container.scrollTop,
+      baseLeft: (stackWidth - baseWidth) / 2,
+      baseTop: 24 + (pageNum - 1) * (baseHeight + 16),
+      baseWidth,
+      baseHeight,
+      containerLeft: containerRect.left,
+      containerTop: containerRect.top,
+    };
+  }, [pagesMeta]);
+
+  const commitZoomScale = useCallback(() => {
+    if (zoomCommitTimerRef.current !== null) window.clearTimeout(zoomCommitTimerRef.current);
+    zoomCommitTimerRef.current = null;
+    const nextScale = scaleRef.current;
+    renderScaleRef.current = nextScale;
+    setRenderScale((previous) => previous === nextScale ? previous : nextScale);
+  }, []);
+
+  const updateZoomScale = useCallback((value: number, commitImmediately = false, anchorPoint?: { x: number; y: number }) => {
+    const nextScale = Number(Math.max(0.4, Math.min(3, value)).toFixed(2));
+    const container = containerRef.current;
+    const existingAnchor = anchorPoint ? zoomAnchorRef.current : null;
+    const containerRect = anchorPoint && existingAnchor ? null : container?.getBoundingClientRect();
+    const anchorX = anchorPoint?.x ?? (containerRect ? containerRect.left + (container?.clientWidth ?? 0) / 2 : 0);
+    const anchorY = anchorPoint?.y ?? (containerRect ? containerRect.top + (container?.clientHeight ?? 0) / 2 : 0);
+    if (anchorPoint) {
+      const anchor = existingAnchor ?? createZoomAnchor(anchorX, anchorY);
+      if (anchor) zoomAnchorRef.current = { ...anchor, viewportX: anchorX - anchor.containerLeft, viewportY: anchorY - anchor.containerTop };
+    } else {
+      zoomAnchorRef.current = createZoomAnchor(anchorX, anchorY);
+    }
+    scaleRef.current = nextScale;
+    if (zoomLabelRef.current) zoomLabelRef.current.textContent = `${Math.round(nextScale * 100)}%`;
+    if (zoomCommitTimerRef.current !== null) window.clearTimeout(zoomCommitTimerRef.current);
+    if (commitImmediately) {
+      commitZoomScale();
+      return;
+    }
+    const ratio = nextScale / renderScaleRef.current;
+    const stack = pageStackRef.current;
+    if (stack) {
+      const anchor = zoomAnchorRef.current;
+      if (anchor) {
+        const originX = anchor.baseLeft + anchor.pageRatioX * anchor.baseWidth;
+        const originY = anchor.baseTop + anchor.pageRatioY * anchor.baseHeight;
+        const translateX = anchor.startScrollLeft + anchor.viewportX - originX;
+        const translateY = anchor.startScrollTop + anchor.viewportY - originY;
+        stack.style.transformOrigin = `${originX}px ${originY}px`;
+        stack.style.transform = `translate(${translateX}px, ${translateY}px) scale(${ratio})`;
+      }
+    }
+    zoomCommitTimerRef.current = window.setTimeout(() => {
+      // A slow device may deliver pinch events less often than the debounce interval.
+      // Keep the PDF canvas untouched until the gesture ends in that case.
+      if (!pinchStartRef.current) commitZoomScale();
+    }, 140);
+  }, [commitZoomScale, createZoomAnchor]);
+
+  useLayoutEffect(() => {
+    syncZoomLayout(scaleRef.current / renderScale);
+    const anchor = zoomAnchorRef.current;
+    const container = containerRef.current;
+    if (anchor && container) {
+      const page = container.querySelector<HTMLElement>(`[data-page-num="${anchor.pageNum}"]`);
+      if (page) {
+        const pageRect = page.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        container.scrollLeft += pageRect.left - containerRect.left + anchor.pageRatioX * pageRect.width - anchor.viewportX;
+        container.scrollTop += pageRect.top - containerRect.top + anchor.pageRatioY * pageRect.height - anchor.viewportY;
+      }
+      zoomAnchorRef.current = null;
+    }
+  }, [pagesMeta, renderScale, syncZoomLayout]);
+
+  useEffect(() => () => {
+    if (zoomCommitTimerRef.current !== null) window.clearTimeout(zoomCommitTimerRef.current);
+  }, []);
 
   const startSearchSpotlight = useCallback(() => {
     if (spotlightStartedRef.current) return;
@@ -176,31 +351,6 @@ export const PdfViewer: React.FC<{
     return () => { cancelled = true; releasePdfDocumentTask(pdfUrl, task); };
   }, [pdfUrl, pdfWorkerUrl]);
 
-  useEffect(() => {
-    if (!containerRef.current || !pagesMeta.length) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          const n = Number(e.target.getAttribute('data-page-num'));
-          if (e.isIntersecting) {
-            setVisiblePages((prev) => {
-              const s = new Set(prev);
-              s.add(n);
-              if (!initialSearchQuery.trim()) {
-                if (n > 1) s.add(n - 1);
-                if (n < numPages) s.add(n + 1);
-              }
-              return s;
-            });
-          }
-        });
-      },
-      { root: containerRef.current, rootMargin: initialSearchQuery.trim() ? '0px' : '400px 0px', threshold: 0.1 }
-    );
-    containerRef.current.querySelectorAll('.pdf-page').forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [pagesMeta, numPages, initialSearchQuery]);
-
   const updateCurrentPageFromScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -216,6 +366,13 @@ export const PdfViewer: React.FC<{
     if (!Number.isInteger(pageNum) || pageNum < 1) return;
     currentPageRef.current = pageNum;
     setCurrentPage((previous) => previous === pageNum ? previous : pageNum);
+    const maxPage = numPagesRef.current || pages.length;
+    const nextVisiblePages = new Set([pageNum - 2, pageNum - 1, pageNum, pageNum + 1, pageNum + 2]
+      .filter((page) => page >= 1 && page <= maxPage));
+    setVisiblePages((previous) => {
+      if (previous.size === nextVisiblePages.size && [...previous].every((page) => nextVisiblePages.has(page))) return previous;
+      return nextVisiblePages;
+    });
   }, []);
 
   useEffect(() => {
@@ -223,9 +380,11 @@ export const PdfViewer: React.FC<{
     if (!container) return;
     let frame = 0;
     const handleScroll = () => {
+      if (pinchStartRef.current) return;
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
+        if (pinchStartRef.current) return;
         updateCurrentPageFromScroll();
       });
     };
@@ -246,12 +405,21 @@ export const PdfViewer: React.FC<{
   const handleFitWidth = useCallback(() => {
     if (!containerRef.current || !pagesMeta.length) return;
     const w = containerRef.current.clientWidth - 48;
-    setScale(Number(Math.min(Math.max(w / pagesMeta[0].width, 0.5), 2.5).toFixed(2)));
-  }, [pagesMeta]);
+    updateZoomScale(Math.min(Math.max(w / pagesMeta[0].width, 0.5), 2.5), true);
+  }, [pagesMeta, updateZoomScale]);
 
   useEffect(() => {
     if (pagesMeta.length && window.innerWidth < 768) handleFitWidth();
   }, [pagesMeta, handleFitWidth]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) handleFitWidth();
+      else syncZoomLayout(scaleRef.current / renderScaleRef.current);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleFitWidth, syncZoomLayout]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -265,33 +433,28 @@ export const PdfViewer: React.FC<{
     const onTouchStart = (event: TouchEvent) => {
       if (event.touches.length !== 2) return;
       const distance = getDistance(event.touches);
-      if (distance > 0) pinchStartRef.current = { distance, scale: scaleRef.current };
+      if (distance > 0) {
+        pinchStartRef.current = { distance, scale: scaleRef.current };
+        const midpointX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+        const midpointY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+        zoomAnchorRef.current = createZoomAnchor(midpointX, midpointY);
+      }
     };
     const onTouchMove = (event: TouchEvent) => {
       const pinch = pinchStartRef.current;
       if (!pinch || event.touches.length !== 2) return;
       event.preventDefault();
-      const nextScale = Math.max(0.4, Math.min(3, pinch.scale * getDistance(event.touches) / pinch.distance));
-      setScale(Number(nextScale.toFixed(2)));
-
       const midpointX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
       const midpointY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
-      const page = (document.elementFromPoint(midpointX, midpointY) as HTMLElement | null)?.closest<HTMLElement>('.pdf-page');
-      if (!page) return;
-      const pageRect = page.getBoundingClientRect();
-      const containerTop = container.getBoundingClientRect().top;
-      const pageYRatio = Math.max(0, Math.min(1, (midpointY - pageRect.top) / pageRect.height));
-      const viewportY = midpointY - containerTop;
-      if (pinchAdjustFrameRef.current) window.cancelAnimationFrame(pinchAdjustFrameRef.current);
-      pinchAdjustFrameRef.current = window.requestAnimationFrame(() => {
-        pinchAdjustFrameRef.current = 0;
-        const updatedRect = page.getBoundingClientRect();
-        const updatedContainerTop = container.getBoundingClientRect().top;
-        container.scrollTop += updatedRect.top - updatedContainerTop + pageYRatio * updatedRect.height - viewportY;
-      });
+      const nextScale = Math.max(0.4, Math.min(3, pinch.scale * getDistance(event.touches) / pinch.distance));
+      updateZoomScale(nextScale, false, { x: midpointX, y: midpointY });
     };
     const onTouchEnd = (event: TouchEvent) => {
-      if (event.touches.length < 2) pinchStartRef.current = null;
+      if (event.touches.length < 2 && pinchStartRef.current) {
+        pinchStartRef.current = null;
+        commitZoomScale();
+        window.requestAnimationFrame(updateCurrentPageFromScroll);
+      }
     };
 
     container.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -303,9 +466,8 @@ export const PdfViewer: React.FC<{
       container.removeEventListener('touchmove', onTouchMove);
       container.removeEventListener('touchend', onTouchEnd);
       container.removeEventListener('touchcancel', onTouchEnd);
-      if (pinchAdjustFrameRef.current) window.cancelAnimationFrame(pinchAdjustFrameRef.current);
     };
-  }, []);
+  }, [commitZoomScale, createZoomAnchor, updateCurrentPageFromScroll, updateZoomScale]);
 
   useEffect(() => {
     const kd = (e: KeyboardEvent) => {
@@ -313,8 +475,8 @@ export const PdfViewer: React.FC<{
         if (fullscreen) { document.exitFullscreen().catch(() => {}); setFullscreen(false); }
         else onClose();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); setScale((s) => Math.min(s + 0.15, 3)); }
-      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); setScale((s) => Math.max(s - 0.15, 0.4)); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); updateZoomScale(scaleRef.current + 0.15); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); updateZoomScale(scaleRef.current - 0.15); }
       const target = e.target as HTMLElement | null;
       const isEditing = target?.isContentEditable || ['INPUT', 'TEXTAREA'].includes(target?.tagName ?? '');
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && !isEditing) {
@@ -325,14 +487,14 @@ export const PdfViewer: React.FC<{
     };
     window.addEventListener('keydown', kd);
     return () => window.removeEventListener('keydown', kd);
-  }, [fullscreen, onClose]);
+  }, [fullscreen, onClose, updateZoomScale]);
 
   const scrollToPage = useCallback((n: number) => {
     const maxPage = numPagesRef.current || 1;
     const p = Math.max(1, Math.min(n, maxPage));
     currentPageRef.current = p;
     setCurrentPage((previous) => previous === p ? previous : p);
-    setVisiblePages((previous) => new Set([...previous, p, ...(p > 1 ? [p - 1] : []), ...(p < maxPage ? [p + 1] : [])]));
+    setVisiblePages(new Set([p - 2, p - 1, p, p + 1, p + 2].filter((page) => page >= 1 && page <= maxPage)));
     containerRef.current?.querySelector(`[data-page-num="${p}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
@@ -401,7 +563,7 @@ export const PdfViewer: React.FC<{
     setFindLoading(true);
     setFindError('');
     setFindMatches([]);
-    setActiveFindIndex(0);
+    setActiveFindIndex(-1);
     setFindPageRanges(new Map());
     try {
       const pageRanges = new Map<number, TextRange[]>();
@@ -409,40 +571,44 @@ export const PdfViewer: React.FC<{
       const currentPage = currentPageRef.current;
       const priorityPage = uniquePages.includes(currentPage) ? currentPage : uniquePages[0];
       const remainingPages = uniquePages.filter((pageNumber) => pageNumber !== priorityPage);
-      let firstMatchPage: number | null = null;
+      let activeMatch: FindOccurrence | null = null;
 
       const scanPage = async (pageNumber: number) => {
         if (requestId !== findRequestId.current) return;
         const page = await pdfDoc.getPage(pageNumber);
         if (requestId !== findRequestId.current) return;
         const content = await page.getTextContent();
-        const textItems = content.items.filter((item): item is typeof item & { str: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0);
-        const pageText = textItems.map((item) => item.str).join(' ');
+        const pageText = getVisualTextItems(page, content).map((item) => item.text).join(' ');
         const ranges = findSearchTextRanges(pageText, term, requiredKeywordMatches);
         if (requestId === findRequestId.current && ranges.length) pageRanges.set(pageNumber, ranges);
       };
 
-      const publishMatches = () => {
-        if (requestId !== findRequestId.current) return;
+      const activateMatch = (match: FindOccurrence, matches: FindOccurrence[]) => {
+        activeMatch = match;
+        const matchIndex = matches.findIndex((candidate) => candidate.page === match.page && candidate.start === match.start && candidate.end === match.end);
+        setActiveFindIndex(matchIndex);
+        if (spotlightArmedRef.current) {
+          spotlightTargetPageRef.current = match.page;
+          spotlightArmedRef.current = false;
+        }
+        window.setTimeout(() => scrollToPage(match.page), 0);
+      };
+
+      const publishMatches = (): FindOccurrence[] => {
+        if (requestId !== findRequestId.current) return [];
         const orderedPages = [...pageRanges.keys()].sort((a, b) => a - b);
         const matches = orderedPages.flatMap((page) => (pageRanges.get(page) ?? []).map((range) => ({ page, ...range })));
         setFindPageRanges(new Map(pageRanges));
         setFindMatches(matches);
-        if (firstMatchPage !== null) {
-          const activeIndex = matches.findIndex((match) => match.page === firstMatchPage);
+        if (activeMatch) {
+          const activeIndex = matches.findIndex((match) => match.page === activeMatch?.page && match.start === activeMatch.start && match.end === activeMatch.end);
           if (activeIndex >= 0) setActiveFindIndex(activeIndex);
         }
-        if (firstMatchPage === null && orderedPages.length) {
-          firstMatchPage = orderedPages.includes(priorityPage) ? priorityPage : orderedPages[0];
-          const matchIndex = matches.findIndex((match) => match.page === firstMatchPage);
-          setActiveFindIndex(Math.max(0, matchIndex));
-          if (spotlightArmedRef.current) {
-            spotlightTargetPageRef.current = firstMatchPage;
-            spotlightArmedRef.current = false;
-          }
-          setVisiblePages((previous) => new Set([...previous, firstMatchPage!]));
-          window.setTimeout(() => scrollToPage(firstMatchPage!), 0);
+        if (!activeMatch && priorityPage && pageRanges.has(priorityPage)) {
+          const match = matches.find((candidate) => candidate.page === priorityPage);
+          if (match) activateMatch(match, matches);
         }
+        return matches;
       };
 
       if (priorityPage) {
@@ -463,7 +629,11 @@ export const PdfViewer: React.FC<{
       });
       await Promise.all(workers);
       if (requestId !== findRequestId.current) return;
-      publishMatches();
+      const matches = publishMatches();
+      if (!activeMatch && matches.length) {
+        const firstForwardMatch = matches.find((match) => match.page > currentPage) ?? matches[0];
+        activateMatch(firstForwardMatch, matches);
+      }
       if (!pageRanges.size) setFindError('No matches found in this PDF.');
       else setFindError('');
     } catch (error) {
@@ -641,14 +811,14 @@ export const PdfViewer: React.FC<{
 
         {/* Zoom */}
         <div className="flex items-center gap-0.5">
-          <button onClick={() => setScale((s) => Math.max(s - 0.15, 0.4))}
+          <button onClick={() => updateZoomScale(scaleRef.current - 0.15)}
             className="p-1.5 text-[#888] hover:text-[#f0f0f0] rounded">
             <ZoomOut size={14} />
           </button>
-          <span className="text-[11px] font-mono text-[#888] w-10 text-center">
-            {Math.round(scale * 100)}%
+          <span ref={zoomLabelRef} className="text-[11px] font-mono text-[#888] w-10 text-center">
+            {Math.round(scaleRef.current * 100)}%
           </span>
-          <button onClick={() => setScale((s) => Math.min(s + 0.15, 3))}
+          <button onClick={() => updateZoomScale(scaleRef.current + 0.15)}
             className="p-1.5 text-[#888] hover:text-[#f0f0f0] rounded">
             <ZoomIn size={14} />
           </button>
@@ -702,7 +872,7 @@ export const PdfViewer: React.FC<{
             aria-label="Find in this PDF"
             className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs text-white outline-none placeholder:text-neutral-600"
           />
-          {findMatches.length > 0 && <span className="shrink-0 text-[10px] text-neutral-500">{activeFindIndex + 1}/{findMatches.length}</span>}
+          {findMatches.length > 0 && activeFindIndex >= 0 && <span className="shrink-0 text-[10px] text-neutral-500">{activeFindIndex + 1}/{findMatches.length}</span>}
           <button type="submit" aria-label="Search this PDF" disabled={isHindiPdf || findLoading || !findQuery.trim()} className="rounded-md p-1.5 text-blue-300 hover:bg-white/5 disabled:opacity-40">
             {findLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
           </button>
@@ -741,8 +911,8 @@ export const PdfViewer: React.FC<{
               )}
             </div>
           )}
-          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={!findMatches.length || activeFindIndex <= 0} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
-          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={!findMatches.length || activeFindIndex >= findMatches.length - 1} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
+          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex - 1)} disabled={findLoading || activeFindIndex <= 0} aria-label="Previous match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronUp size={14} /></button>
+          <button type="button" onClick={() => jumpToFindMatch(activeFindIndex + 1)} disabled={findLoading || activeFindIndex < 0 || activeFindIndex >= findMatches.length - 1} aria-label="Next match" className="rounded-md p-1.5 text-neutral-400 hover:bg-white/5 disabled:opacity-30"><ChevronDown size={14} /></button>
           <button type="button" onClick={() => clearDocumentFind(true)} aria-label="Close find" className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-white"><X size={14} /></button>
           {findError && <span className="absolute left-3 top-full mt-2 rounded-md bg-[#171717] px-2 py-1 text-[10px] text-neutral-400">{findError}</span>}
         </form>
@@ -751,9 +921,11 @@ export const PdfViewer: React.FC<{
       {/* PDF canvas area */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center gap-4 py-6 px-4 select-text"
+        className="flex-1 overflow-y-auto overflow-x-auto select-text"
         style={{ touchAction: 'pan-x pan-y' }}
       >
+        <div ref={zoomFrameRef} className="relative min-w-full">
+          <div ref={pageStackRef} className="absolute left-0 top-0 flex flex-col items-center gap-4 px-4 py-6">
         {loading && (
           <div className="w-full max-w-[42rem] animate-pulse px-1" role="status" aria-label="Loading PDF page">
             <div className="relative mx-auto aspect-[0.74] w-full overflow-hidden rounded-sm bg-[#f4f4f5] p-8 shadow-[0_8px_36px_rgba(0,0,0,.35)] sm:p-12">
@@ -791,7 +963,8 @@ export const PdfViewer: React.FC<{
               key={meta.pageNum}
               pdfDoc={pdfDoc}
               pageNum={meta.pageNum}
-              scale={scale}
+              renderScale={renderScale}
+              displayScale={scaleRef.current}
               width={meta.width}
               height={meta.height}
               isVisible={visiblePages.has(meta.pageNum)}
@@ -806,6 +979,8 @@ export const PdfViewer: React.FC<{
             />
           );
         })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -815,7 +990,8 @@ export const PdfViewer: React.FC<{
 const PdfPage: React.FC<{
   pdfDoc: pdfjsLib.PDFDocumentProxy;
   pageNum: number;
-  scale: number;
+  renderScale: number;
+  displayScale: number;
   width: number;
   height: number;
   isVisible: boolean;
@@ -827,90 +1003,139 @@ const PdfPage: React.FC<{
   spotlightActive: boolean;
   spotlightFading: boolean;
   onSearchHighlightReady?: (pageNum: number) => void;
-}> = ({ pdfDoc, pageNum, scale, width, height, isVisible, isSearchMatch, searchTerm, activeRange, minKeywordMatches, isHindiPdf, spotlightActive, spotlightFading, onSearchHighlightReady }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+}> = ({ pdfDoc, pageNum, renderScale, displayScale, width, height, isVisible, isSearchMatch, searchTerm, activeRange, minKeywordMatches, isHindiPdf, spotlightActive, spotlightFading, onSearchHighlightReady }) => {
+  const canvasHostRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const activeLineRef = useRef<HTMLDivElement>(null);
   const taskRef = useRef<pdfjsLib.RenderTask | null>(null);
   const textLayerReadyRef = useRef(false);
+  const textRenderRequestRef = useRef(0);
   const [textLayerVersion, setTextLayerVersion] = useState(0);
 
   useEffect(() => {
     if (!isVisible) return;
     let cancelled = false;
-    textLayerReadyRef.current = false;
-    if (textRef.current) textRef.current.innerHTML = '';
+    let renderTask: pdfjsLib.RenderTask | null = null;
 
-    async function render() {
+    const renderCanvas = async () => {
       try {
         const page = await pdfDoc.getPage(pageNum);
-        if (cancelled || !canvasRef.current) return;
-        const vp = page.getViewport({ scale });
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d')!;
-        const dpr = window.devicePixelRatio || 1;
+        if (cancelled || !canvasHostRef.current) return;
+        const vp = page.getViewport({ scale: renderScale });
+        const host = canvasHostRef.current;
+        const cssWidth = Math.floor(vp.width);
+        const cssHeight = Math.floor(vp.height);
+        const previousCanvas = host.querySelector('canvas');
+        if (previousCanvas) {
+          previousCanvas.style.width = `${cssWidth}px`;
+          previousCanvas.style.height = `${cssHeight}px`;
+        }
+        const canvas = document.createElement('canvas');
+        const dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(12_000_000 / Math.max(1, vp.width * vp.height)));
         canvas.width = Math.floor(vp.width * dpr);
         canvas.height = Math.floor(vp.height * dpr);
-        canvas.style.width = `${Math.floor(vp.width)}px`;
-        canvas.style.height = `${Math.floor(vp.height)}px`;
+        canvas.style.width = `${cssWidth}px`;
+        canvas.style.height = `${cssHeight}px`;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-        if (taskRef.current) taskRef.current.cancel();
+        taskRef.current?.cancel();
         const renderCtx: any = {
           canvasContext: ctx,
           transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
           viewport: vp,
         };
-        taskRef.current = page.render(renderCtx);
-        const textContentPromise = page.getTextContent();
-        const canvasRenderPromise = taskRef.current.promise;
-        let textLayerPromise = Promise.resolve();
-        if (textRef.current) {
-          const textContainer = textRef.current;
-          textContainer.style.width = `${Math.floor(vp.width)}px`;
-          textContainer.style.height = `${Math.floor(vp.height)}px`;
-          textContainer.style.setProperty('--scale-factor', `${scale}`);
-          textLayerPromise = (async () => {
-            const tc = await textContentPromise;
-            if (cancelled) return;
-            const tl = new pdfjsLib.TextLayer({ textContentSource: tc, container: textContainer, viewport: vp });
-            await tl.render();
-            if (cancelled) return;
-            if (isHindiPdf && typeof page.commonObjs?.get === 'function') {
-              const spans = Array.from(textContainer.querySelectorAll('span'));
-              let spanIndex = 0;
-              for (const item of tc.items) {
-                if (!('str' in item) || !item.str) continue;
-                const span = spans[spanIndex++];
-                if (!span) continue;
-                try {
-                  const font = page.commonObjs.get(item.fontName) as { name?: string };
-                  if (font.name && /(?:walkman[- ]?chanakya|chanakya)/i.test(font.name)) {
-                    span.dataset.legacyHindiFont = 'chanakya';
-                  }
-                } catch {
-                  // Fonts can be unresolved for hidden or malformed text runs.
-                }
-              }
-            }
-            textLayerReadyRef.current = true;
-            setTextLayerVersion((version) => version + 1);
-          })();
-        }
-        await Promise.all([canvasRenderPromise, textLayerPromise]);
+        renderTask = page.render(renderCtx);
+        taskRef.current = renderTask;
+        await renderTask.promise;
+        if (cancelled || !canvasHostRef.current) return;
+        canvas.className = 'block';
+        const oldCanvas = canvasHostRef.current.querySelector('canvas');
+        if (oldCanvas) oldCanvas.replaceWith(canvas);
+        else canvasHostRef.current.append(canvas);
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') console.warn(err);
       }
-    }
-    render();
+    };
+    void renderCanvas();
     return () => {
       cancelled = true;
-      taskRef.current?.cancel();
+      renderTask?.cancel();
     };
-  }, [pdfDoc, pageNum, scale, isVisible, isHindiPdf]);
+  }, [pdfDoc, pageNum, renderScale, isVisible]);
+
+  useEffect(() => {
+    if (isVisible) return;
+    const timeout = window.setTimeout(() => {
+      canvasHostRef.current?.replaceChildren();
+      textRef.current?.replaceChildren();
+      textLayerReadyRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible || !textRef.current) return;
+    const requestId = ++textRenderRequestRef.current;
+    let cancelled = false;
+    const textContainer = textRef.current;
+    textLayerReadyRef.current = false;
+    textContainer.innerHTML = '';
+
+    const renderTextLayer = async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        const content = await page.getTextContent();
+        if (cancelled || requestId !== textRenderRequestRef.current) return;
+        const viewport = page.getViewport({ scale: 1 });
+        textContainer.style.width = `${Math.floor(viewport.width)}px`;
+        textContainer.style.height = `${Math.floor(viewport.height)}px`;
+        textContainer.style.setProperty('--scale-factor', '1');
+        const layer = new pdfjsLib.TextLayer({ textContentSource: content, container: textContainer, viewport });
+        await layer.render();
+        if (cancelled || requestId !== textRenderRequestRef.current) return;
+
+        const spans = Array.from(textContainer.querySelectorAll<HTMLSpanElement>('span:not(.markedContent)'));
+        spans.forEach((span, index) => { span.dataset.pdfFindOrder = String(index); });
+        const visualItems = getVisualTextItems(page, content);
+        visualItems.forEach((item, order) => {
+          const span = spans[item.spanIndex];
+          if (span) span.dataset.pdfFindOrder = String(order);
+        });
+
+        if (isHindiPdf && typeof page.commonObjs?.get === 'function') {
+          const sourceItems = content.items.filter((item): item is typeof item & { str: string; fontName: string } => 'str' in item && typeof item.str === 'string' && item.str.length > 0);
+          sourceItems.forEach((item, index) => {
+            const span = spans[index];
+            if (!span) return;
+            try {
+              const font = page.commonObjs.get(item.fontName) as { name?: string };
+              if (font.name && /(?:walkman[- ]?chanakya|chanakya)/i.test(font.name)) span.dataset.legacyHindiFont = 'chanakya';
+            } catch {
+              // Fonts can be unresolved for hidden or malformed text runs.
+            }
+          });
+        }
+
+        textLayerReadyRef.current = true;
+        setTextLayerVersion((version) => version + 1);
+      } catch (err) {
+        if (!cancelled) console.warn(err);
+      }
+    };
+    void renderTextLayer();
+    return () => {
+      cancelled = true;
+      textRenderRequestRef.current += 1;
+    };
+  }, [pdfDoc, pageNum, isVisible, isHindiPdf, width, height]);
 
   useEffect(() => {
     const container = textRef.current;
     if (!container || !textLayerReadyRef.current) return;
 
+    activeLineRef.current?.style.setProperty('display', 'none');
     container.querySelectorAll('mark.pdf-find-highlight').forEach((mark) => {
       mark.replaceWith(document.createTextNode(mark.textContent ?? ''));
     });
@@ -919,29 +1144,54 @@ const PdfPage: React.FC<{
     if (isSearchMatch && searchTerm) {
       const highlightCount = highlightPdfText(container, searchTerm, minKeywordMatches, activeRange);
       if (activeRange) {
-        container.querySelector('mark.pdf-find-highlight-active')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        const activeMark = container.querySelector<HTMLElement>('mark.pdf-find-highlight-active');
+        const activeLine = activeLineRef.current;
+        const pageElement = pageRef.current;
+        if (activeMark && activeLine && pageElement) {
+          const pageRect = pageElement.getBoundingClientRect();
+          const wordRect = activeMark.getBoundingClientRect();
+          activeLine.style.top = `${(wordRect.top - pageRect.top) / displayScale}px`;
+          activeLine.style.height = `${Math.max(1, wordRect.height / displayScale)}px`;
+          activeLine.style.display = 'block';
+          activeMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
       }
       if (highlightCount) onSearchHighlightReady?.(pageNum);
     }
   }, [textLayerVersion, isSearchMatch, searchTerm, activeRange?.start, activeRange?.end, minKeywordMatches, pageNum, onSearchHighlightReady]);
 
-  const displayW = Math.round(width * scale);
-  const displayH = Math.round(height * scale);
+  const renderW = Math.round(width * renderScale);
+  const renderH = Math.round(height * renderScale);
 
   return (
     <div
+      ref={pageRef}
       data-page-num={pageNum}
       className={`pdf-page relative shadow-[0_4px_24px_rgba(0,0,0,0.6)] rounded-sm bg-white overflow-hidden ${isSearchMatch ? 'ring-2 ring-blue-400' : ''}`}
-      style={{ width: displayW, minHeight: displayH }}
+      style={{ width: renderW, height: renderH }}
     >
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      <div
+        ref={canvasHostRef}
+        className="absolute left-0 top-0 z-0 origin-top-left"
+        style={{ width: renderW, height: renderH }}
+      />
       {spotlightActive && (
         <div
           aria-hidden="true"
           className={`pointer-events-none absolute inset-0 z-[1] bg-black/70 transition-opacity duration-700 ${spotlightFading ? 'opacity-0' : 'opacity-100'}`}
         />
       )}
-      <div ref={textRef} className="textLayer absolute inset-0 select-text" />
+      <div
+        ref={activeLineRef}
+        aria-hidden="true"
+        className="pdf-find-active-line"
+        style={{ width, transform: `scale(${renderScale})`, display: 'none' }}
+      />
+      <div
+        ref={textRef}
+        className="textLayer absolute left-0 top-0 select-text"
+        style={{ width, height, transform: `scale(${renderScale})`, transformOrigin: 'top left' }}
+      />
     </div>
   );
 };

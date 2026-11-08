@@ -46,7 +46,7 @@
   text-size-adjust: none;
   forced-color-adjust: none;
   transform-origin: 0 0;
-  z-index: 2;
+  z-index: 3;
   user-select: text;
   -webkit-user-select: text;
 }
@@ -70,6 +70,17 @@
   background: #3b82f6;
   color: #fff !important;
   box-shadow: 0 0 0 1px rgba(30, 64, 175, 0.4);
+}
+
+.pdf-find-active-line {
+  position: absolute;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-origin: top left;
+  background: rgba(59, 130, 246, 0.16);
+  border-top: 1px solid rgba(59, 130, 246, 0.22);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.22);
 }
 
 @keyframes flashcard-turn {

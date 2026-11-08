@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-07T09:31:15.137Z",
+  "generatedAt": "2026-11-08T09:02:50.241Z",
   "sourceDirectory": "Bundled book library",
-  "totalPdfs": 102,
+  "totalPdfs": 103,
   "subjects": [
     {
       "id": "Science",
@@ -320,6 +320,17 @@
           "sizeBytes": 1847788,
           "thumbnailUrl": "thumbnails/Maths/14.png",
           "isEconomicsException": false
+        },
+        {
+          "id": "Maths/Answers.pdf",
+          "filename": "Answers.pdf",
+          "title": "Answers",
+          "path": "books/Maths/Answers.pdf",
+          "rawPath": "Maths/Answers.pdf",
+          "sizeBytes": 1561426,
+          "thumbnailUrl": "thumbnails/Maths/Answers.png",
+          "isEconomicsException": false,
+          "isAdvancedSearchable": false
         }
       ]
     },

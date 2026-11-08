@@ -192,7 +192,7 @@ export async function buildPdfSearchIndex(
   getAssetUrl: (path: string) => string,
   onProgress: (progress: PdfIndexProgress) => void,
 ): Promise<{ json: string; sizeBytes: number; pdfCount: number; documentCount: number }> {
-  const files = excludeHindiPdfs(inputFiles);
+  const files = excludeHindiPdfs(inputFiles).filter((file) => file.isAdvancedSearchable !== false);
   pdfjsLib.GlobalWorkerOptions.workerSrc = getAssetUrl('pdf.worker.min.mjs');
   const miniSearch = new MiniSearch<PageSearchDocument>(MINI_SEARCH_OPTIONS);
   let pageBatch: PageSearchDocument[] = [];

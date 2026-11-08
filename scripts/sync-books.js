@@ -245,7 +245,8 @@ function scanDir(dir, relPath = '') {
         rawPath: publishedRelPath,
         sizeBytes: stat.size,
         thumbnailUrl: thumbWebPath,
-        isEconomicsException: isEconomics
+        isEconomicsException: isEconomics,
+        ...(normalizedPdfPath === 'Maths/Answers.pdf' ? { isAdvancedSearchable: false } : {})
       });
     }
   }

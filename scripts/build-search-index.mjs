@@ -34,7 +34,8 @@ function isHindiSubject(subject) {
 }
 
 function countPdfs(folder) {
-  return (folder.files ?? []).length + (folder.subfolders ?? []).reduce((sum, child) => sum + countPdfs(child), 0);
+  return (folder.files ?? []).filter((file) => file.isAdvancedSearchable !== false).length
+    + (folder.subfolders ?? []).reduce((sum, child) => sum + countPdfs(child), 0);
 }
 
 const searchablePdfCount = manifest.subjects
@@ -93,7 +94,10 @@ async function indexFile(file, subject, folder, scopeIds) {
 }
 
 async function visitFolder(folder, subject, breadcrumb, scopeIds) {
-  for (const file of folder.files ?? []) await indexFile(file, subject, breadcrumb.join(' / '), scopeIds);
+  for (const file of folder.files ?? []) {
+    if (file.isAdvancedSearchable === false) continue;
+    await indexFile(file, subject, breadcrumb.join(' / '), scopeIds);
+  }
   for (const child of folder.subfolders ?? []) {
     await visitFolder(child, subject, [...breadcrumb, child.displayName], [...scopeIds, child.path]);
   }
